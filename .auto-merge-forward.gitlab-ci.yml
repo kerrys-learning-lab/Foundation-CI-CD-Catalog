@@ -10,7 +10,9 @@ include:
     GLAB_CHECK_UPDATE: false
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
+    ROCKYLINUX_PACKAGES: jq yq
   before_script:
+    - !reference [.scratch//rocky10-prerequisites,  before_script]
     - !reference [.scratch//install-glab, before_script]
     - !reference [default,                before_script]
     - |
@@ -32,6 +34,12 @@ include:
       if git ls-remote --exit-code --heads origin ${NEXT_MINOR_RELEASE_BRANCH}; then
         MERGE_TARGET_BRANCH=${NEXT_MINOR_RELEASE_BRANCH}
       fi
+
+      if git merge-base --is-ancestor HEAD origin/main; then
+        echo "🟢 All commits from ${CI_COMMIT_BRANCH} already exist in ${MERGE_TARGET_BRANCH}."
+        exit 0
+      fi
+
 
       GLAB_LIST_CLI_ARGS=()
       GLAB_LIST_CLI_ARGS+=(--source-branch ${CI_COMMIT_BRANCH})
