@@ -1,0 +1,56 @@
+# ============================================================================
+# Calculates this pipeline's Semantic Version information and writes
+# the variables to ${JOB_ARTIFACTS_DIR}/semver.env
+#
+# Defines/declares the following outputs:
+#   - RELEASE_TRAIN:           The release train (first two digits of
+#                              the SemVer)
+#   - SEMANTIC_VERSION:        The full SemVer, possibly including
+#                              release candidate information and
+#                              build metadata
+#   - SEMANTIC_VERSION_MAJOR:  The major component of the SemVer
+#   - SEMANTIC_VERSION_MINOR:  The minor component of the SemVer
+#   - SEMANTIC_VERSION_PATCH:  The patch component of the SemVer
+spec:
+  inputs:
+
+    # ------------------------------------------------------------------------
+    stage:
+      description:  The stage for the 'pipeline version' Job
+      type: string
+      default: .pre
+
+    job_name_prefix:
+      description: Optional prefix for the Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for the Job's name
+      type: string
+      default: ''
+
+
+  component:
+    - name
+    - version
+    - reference
+
+
+---
+
+
+# ============================================================================
+include:
+  - local: templates/defaults.yml
+  - local: .semver.gitlab-ci.yml
+
+
+
+# ----------------------------------------------------------------------------
+"$[[ inputs.job_name_prefix ]]pipeline version$[[ inputs.job_name_suffix ]]":
+  extends: .pipeline-version
+  stage: $[[ inputs.stage ]]
+  variables:
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]

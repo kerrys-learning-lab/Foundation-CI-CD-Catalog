@@ -1,0 +1,84 @@
+# ============================================================================
+include:
+  - local: .scratch.gitlab-ci.yml
+
+
+# ============================================================================
+.bashunit-test:
+  stage: test
+  variables:
+    BASHUNIT_TESTS_PATH: ./tests/
+    SOURCE_GITLAB_FILES: ''
+    ROCKYLINUX_PACKAGES:
+      jq
+      yq
+  before_script:
+    - |
+      # --- bash unit-test (before) ------------------------------------------
+      JOB_SETTINGS+=("📂 Tests path;${BASHUNIT_TESTS_PATH}")
+      JOB_SETTINGS+=("📄 Results path;${JOB_ARTIFACTS_DIR}/test-results.xml")
+    - !reference [.scratch//rocky10-prerequisites,  before_script]
+    - !reference [.scratch//install-bashunit,       before_script]
+    - !reference [.bashunit//extract-yaml-scripts,  before_script]
+    - !reference [default,                          before_script]
+  script:
+    - |
+      # --- bash unit-test ---------------------------------------------------
+      bashunit  test  --run-all  \
+                      --log-junit  \
+                      ${JOB_ARTIFACTS_DIR}/test-results.xml  \
+                      ${BASHUNIT_TESTS_PATH}
+  artifacts:
+    paths:
+      - ${JOB_ARTIFACTS_DIR}
+    reports:
+      junit: ${JOB_ARTIFACTS_DIR}/*.xml
+    expire_in: 1 week
+
+
+# ============================================================================
+.bashunit//extract-yaml-scripts:
+  before_script:
+    - |
+      # --- bashunit//extract-jobs-under-test --------------------------------
+      readarray -d '' -t GITLAB_CI_FILES < <(find . -name '*.gitlab-ci.yml' -printf '%P\0')
+
+      for file in ${GITLAB_CI_FILES[@]}; do
+        file_slug=${file%.gitlab-ci.yml}
+        file_slug=${file_slug//\//-}
+        file_slug=${file_slug//./}
+
+        # Get only keys whose values are maps/hashes:
+        mapfile -t job_candidates < <( \
+          yq 'with_entries(select(.value | tag == "!!map")) | keys | .[]' \
+          "${file}" \
+        )
+
+        for job in "${job_candidates[@]}"; do
+          job_slug="${job//\//-}"
+          job_slug="${job_slug// /-}"
+          job_slug="${job_slug//./-}"
+          job_slug="${job_slug#-}"
+          uut=/usr/local/bin/uut--${file_slug}--${job_slug}
+
+          for script_type in before_script script after_script; do
+            export job
+            export script_type
+
+            # Grab only the before/script section... and remove '!reference...'
+            yq -r '
+              .[strenv(job)][strenv(script_type)]
+              | .[]
+              | select(tag == "!!str")
+            ' ${file} >> ${uut}
+
+          done
+
+          if grep -q '[^[:space:]]' ${uut}; then
+            JOB_SETTINGS+=("🐚 Unit-under-test: ${file};${uut}")
+            chmod a=rx ${uut}
+          else
+            rm -f ${uut}
+          fi
+        done
+      done

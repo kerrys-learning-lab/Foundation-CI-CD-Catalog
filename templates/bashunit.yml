@@ -1,0 +1,38 @@
+# ============================================================================
+spec:
+  inputs:
+
+    tests_path:
+      description: File or directory containing tests
+      type: string
+      default: ./tests
+
+    job_name_prefix:
+      description: Optional prefix for this Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for this Job's name
+      type: string
+      default: ''
+
+
+  component:
+    - name
+    - version
+    - reference
+
+
+---
+include:
+  - local: .bashunit.gitlab-ci.yml
+
+
+# ============================================================================
+"$[[ inputs.job_name_prefix ]]bash unit-test$[[ inputs.job_name_suffix ]]":
+  extends: .bashunit-test
+  variables:
+    BASHUNIT_TESTS_PATH: $[[ inputs.tests_path ]]
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]

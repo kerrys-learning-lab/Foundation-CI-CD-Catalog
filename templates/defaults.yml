@@ -1,0 +1,167 @@
+# ============================================================================
+variables:
+  INSTALL_DIR: /usr/local/install
+  PIPELINE_ARTIFACTS_DIR: .pipeline-artifacts
+  RELEASE_NOTES_DIR: ${PIPELINE_ARTIFACTS_DIR}/release-notes
+  JOB_ARTIFACTS_DIR: ${PIPELINE_ARTIFACTS_DIR}/$CI_JOB_NAME_SLUG
+
+
+# ============================================================================
+stages:
+  - build     # Produces one or more artifacts based on the Project's source code
+              # Example actions: compile, package, containerize
+  - test      # Tests the sofware artifacts (possibly includes secrity scans)
+              # Example actions: unit test, security scan, quality gate
+  - publish   # Push the artifact in an accessible repository
+              # Example actions:  'podman push', 'npm publish'
+  - release   # Notify down-stream consumers, update environment, etc.
+
+
+# ============================================================================
+default:
+  interruptible: true
+  image: docker.io/rockylinux/rockylinux:10.2-ubi
+  before_script:
+    - !reference [.print-job-settings,  script]
+    - |
+      # --- default (before) -------------------------------------------------
+      set -e
+      mkdir -p ${JOB_ARTIFACTS_DIR}
+      mkdir -p ${PIPELINE_ARTIFACTS_DIR}
+
+      if [[ "${CICD_VERY_VERBOSE}" == "true" ]]; then
+        set -x
+      fi
+
+
+# ============================================================================
+# Enforce MRs as the primary mechanism for Pipeline execution, since MRs
+# carry 'intent'
+#
+#   - MRs know their target branch, which unlocks target-aware versioning,
+#     merged-results pipleines, and merge trains
+#   - Conversely, branch pushes are context-free (don't specify a target)
+#
+# Therefore, pushes become secondary to MRs (but, a branch push without a MR
+# can still be built using the Web UI or a schedule)
+.rules//merge-request-as-primary-workflow:
+  rules:
+    # Favor MR Pipelines:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+    # Also allow Web UI and schedule
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+
+    # De-duplication, for merges to protected branches
+    # Filter in CI_PIPELINE_SOURCE so that triggered piplines aren't impacted
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+
+    # Tags and protected branches are still built
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+    - when: never
+
+
+# ============================================================================
+.rules//if-default-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+
+# ============================================================================
+.rules//never-if-default-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: never
+
+
+# ============================================================================
+.rules//if-protected-ref:
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+
+# ============================================================================
+.rules//if-protected-tag:
+  rules:
+    - if: $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"
+
+
+# ============================================================================
+.rules//if-release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$/
+
+
+# ============================================================================
+.rules//if-release-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^release\/.*/
+
+
+# ============================================================================
+.rules//never-if-merge-request:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+
+
+# ============================================================================
+.rules//if-gitlab-ci:
+  rules:
+    - if: $GITLAB_CI == "true"
+
+
+# ============================================================================
+.rules//if-gitlab-ci-local:
+  rules:
+    - if: $GITLAB_CI != "true"
+
+
+# ============================================================================
+.rules//never-if-gitlab-ci-local:
+  rules:
+    - if: $GITLAB_CI != "true"
+      when: never
+
+
+# ============================================================================
+.print-job-settings:
+  script:
+    - |
+      #
+      # --- print-job-settings -----------------------------------------------
+      TABLE_ROWS=()
+      if [[ -n "${COMPONENT_NAME}" && -n "${COMPONENT_REFERENCE}" ]]; then
+        TABLE_ROWS=("--------------------;--------------------")
+        TABLE_ROWS+=("🏷️ ${COMPONENT_NAME};${COMPONENT_REFERENCE}")
+        TABLE_ROWS=("--------------------;--------------------")
+      fi
+      if [[ -n "${JOB_SETTINGS}" ]]; then
+        TABLE_ROWS+=("${JOB_SETTINGS[@]}")
+      fi
+    - !reference [.print-table, script]
+
+
+# ============================================================================
+.print-table:
+  script:
+    - |
+      #
+      # --- print-table ------------------------------------------------------
+      if [[ -n "${TABLE_ROWS}" ]]; then
+        # Emojis require a compatible locale:
+        export LC_ALL=C.UTF-8
+
+        echo "=========================================================================================================="
+        printf '%s\n' "${TABLE_ROWS[@]}" | column --table  \
+                                                  --separator ';' \
+                                                  --output-separator ' | '  \
+                                                  --table-columns Setting,Value
+        echo "=========================================================================================================="
+        echo ""
+      fi

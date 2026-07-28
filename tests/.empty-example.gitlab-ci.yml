@@ -1,0 +1,6 @@
+# This "job" has neither 'before_script' nor 'script', so no unit-under-test
+# file should be created for it:
+empty-job-1:
+  extends: foo
+  variables:
+    DOES_NOT_HAVE_SCRIPT: ''
