@@ -12,8 +12,10 @@ include:
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
     RELEASE_README_FILEPATH: $RELEASE_NOTES_DIR/RELEASE.md
+    ROCKYLINUX_PACKAGES: jq yq
   before_script:
-    - !reference [.scratch//install-glab, before_script]
+    - !reference [.scratch//rocky10-prerequisites,  before_script]
+    - !reference [.scratch//install-glab,           before_script]
     - |
       # --- release (before) -------------------------------------------------
       echo ${GITLAB_CICD_BOT_TOKEN} | glab auth login --hostname ${CI_SERVER_HOST}  \
