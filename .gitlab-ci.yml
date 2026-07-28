@@ -1,0 +1,38 @@
+# ============================================================================
+include:
+  - local: templates/defaults.yml
+  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .bashunit.gitlab-ci.yml
+  - local: .release.gitlab-ci.yml
+  - local: .scratch.gitlab-ci.yml
+  - local: .semver.gitlab-ci.yml
+
+
+# ============================================================================
+workflow:
+  name: CI/CD Tools Catalog Builder
+  rules:
+    - !reference [.rules//merge-request-as-primary-workflow, rules]
+
+
+# ============================================================================
+pipeline version:
+  extends: .pipeline-version
+
+
+# ============================================================================
+bashunit test:
+  extends: .bashunit-test
+  before_script:
+    - !reference [.bashunit-test,           before_script]
+    - !reference [.scratch//install-glab,   before_script]
+
+
+# ============================================================================
+auto merge forward:
+  extends: .auto-merge-forward
+
+
+# ============================================================================
+release:
+  extends: .release

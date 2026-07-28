@@ -1,0 +1,23 @@
+this-is-not-a-job:
+  - because-it-is-an
+  - array
+
+.good-job-1:
+  before_script:
+    - echo foo
+    - echo bar
+    - !reference [.does not exist, before_script]
+  after_script:
+    - echo after
+
+.good-job-2:
+  before_script:
+    - |
+      # --- test-job-2 -------------------------------------------------------
+      echo blam
+  script:
+    - echo "flobber"
+
+good job 3:
+  before_script:
+    - echo good job 3
