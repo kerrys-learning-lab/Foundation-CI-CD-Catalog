@@ -44,12 +44,12 @@ include:
 #                               for the default branch)
 .pipeline-version:
   stage: .pre
+  image: $GLAB_JOB_IMAGE
   variables:
     # We need access to all tag refs in order to accurately calculate the
     # release candidate information:
     GIT_FETCH_EXTRA_FLAGS: --prune --quiet --tags
   before_script:
-    - !reference [.scratch//rocky10-prerequisites,  before_script]
     - |
       # --- pipeline version (before) ----------------------------------------
       JOB_SETTINGS+=("📛 CI_COMMIT_REF_NAME;${CI_COMMIT_REF_NAME}")

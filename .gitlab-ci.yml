@@ -1,5 +1,21 @@
 # ============================================================================
 include:
+  - component: $CI_SERVER_FQDN/kerrys-learning-lab/devsecops/cicd-catalog/image/pipeline@release/0.1
+    inputs:
+      target: glab
+      unit_test_enabled: false
+      structure_test_enabled: false
+      job_name_suffix: " (glab)"
+
+  - component: $CI_SERVER_FQDN/kerrys-learning-lab/devsecops/cicd-catalog/image/pipeline@release/0.1
+    inputs:
+      target: bashunit
+      unit_test_enabled: false
+      structure_test_enabled: false
+      job_name_suffix: " (bashunit)"
+      build_needs:
+        - image build (glab)
+
   - local: templates/defaults.yml
   - local: .auto-merge-forward.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
@@ -16,23 +32,48 @@ workflow:
 
 
 # ============================================================================
+# Unfortunately, we can't dog-food this Job because the image hasn't been
+# built yet ... so, we start from scratch for this Job, but later in the
+# Pipeline we'll compare this Job to one that uses the Pipeline image...
 pipeline version:
   extends: .pipeline-version
+  image: $ROCKYLINUX_BASE_IMAGE
+  before_script:
+    - !reference [.scratch//rocky10-prerequisites,  before_script]
+    - !reference [.pipeline-version,                before_script]
+
+
+# ============================================================================
+# Begin dog-fooding the image being built by this Pipeline
+# ============================================================================
 
 
 # ============================================================================
 bashunit test:
   extends: .bashunit-test
-  before_script:
-    - !reference [.bashunit-test,           before_script]
-    - !reference [.scratch//install-glab,   before_script]
+  image: $CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID
+
+
+# ============================================================================
+pipeline version test:
+  stage: test
+  extends: .pipeline-version
+  image: $CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID
+  script:
+    - !reference [.pipeline-version,  script]
+    - |
+      # --- pipeline version test --------------------------------------------
+      diff --report-identical-files ${PIPELINE_ARTIFACTS_DIR}/pipeline-version/semver.env  \
+                                    ${JOB_ARTIFACTS_DIR}/semver.env
 
 
 # ============================================================================
 auto merge forward:
   extends: .auto-merge-forward
+  image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
 
 
 # ============================================================================
 release:
   extends: .release
+  image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID

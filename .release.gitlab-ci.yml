@@ -6,6 +6,7 @@ include:
 # ============================================================================
 .release:
   stage: release
+  image: $GLAB_JOB_IMAGE
   interruptible: false
   variables:
     GLAB_CHECK_UPDATE: false
@@ -13,7 +14,6 @@ include:
     GLAB_SHOW_WHATS_NEW: false
     RELEASE_README_FILEPATH: $RELEASE_NOTES_DIR/RELEASE.md
   before_script:
-    - !reference [.scratch//install-glab,           before_script]
     - |
       # --- release (before) -------------------------------------------------
       echo ${GITLAB_CICD_BOT_TOKEN} | glab auth login --hostname ${CI_SERVER_HOST}  \

@@ -6,19 +6,15 @@ include:
 # ============================================================================
 .bashunit-test:
   stage: test
+  image: $BASHUNIT_JOB_IMAGE
   variables:
     BASHUNIT_TESTS_PATH: ./tests/
     SOURCE_GITLAB_FILES: ''
-    ROCKYLINUX_PACKAGES:
-      jq
-      yq
   before_script:
     - |
       # --- bash unit-test (before) ------------------------------------------
       JOB_SETTINGS+=("📂 Tests path;${BASHUNIT_TESTS_PATH}")
       JOB_SETTINGS+=("📄 Results path;${JOB_ARTIFACTS_DIR}/test-results.xml")
-    - !reference [.scratch//rocky10-prerequisites,  before_script]
-    - !reference [.scratch//install-bashunit,       before_script]
     - !reference [.bashunit//extract-yaml-scripts,  before_script]
     - !reference [default,                          before_script]
   script:
