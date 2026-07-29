@@ -4,8 +4,8 @@ variables:
   PIPELINE_ARTIFACTS_DIR: .pipeline-artifacts
   RELEASE_NOTES_DIR: ${PIPELINE_ARTIFACTS_DIR}/release-notes
   JOB_ARTIFACTS_DIR: ${PIPELINE_ARTIFACTS_DIR}/$CI_JOB_NAME_SLUG
-  BASHUNIT_JOB_IMAGE: $CI_REGISTRY/kerrys-learning-lab/devsecops/cicd-catalog/foundation/bashunit:main
-  GLAB_JOB_IMAGE: $CI_REGISTRY/kerrys-learning-lab/devsecops/cicd-catalog/foundation/glab:main
+  BASHUNIT_JOB_IMAGE: $CI_REGISTRY/kerrys-learning-lab/devsecops/cicd-catalog/foundation/bashunit:release/0.2
+  GLAB_JOB_IMAGE: $CI_REGISTRY/kerrys-learning-lab/devsecops/cicd-catalog/foundation/glab:release/0.2
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi
 
 
