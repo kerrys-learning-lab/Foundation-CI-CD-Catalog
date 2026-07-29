@@ -6,14 +6,12 @@ include:
 # ============================================================================
 .auto-merge-forward:
   stage: release
+  image: $GLAB_JOB_IMAGE
   variables:
     GLAB_CHECK_UPDATE: false
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
-    ROCKYLINUX_PACKAGES: jq yq
   before_script:
-    - !reference [.scratch//rocky10-prerequisites,  before_script]
-    - !reference [.scratch//install-glab, before_script]
     - !reference [default,                before_script]
     - |
       # --- auto merge forward (before) --------------------------------------
