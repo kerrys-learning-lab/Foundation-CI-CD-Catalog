@@ -16,17 +16,15 @@ spec:
 # ----------------------------------------------------------------------------
 include:
   - local: templates/defaults.yml
-  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .merge-forward.gitlab-ci.yml
 
 
 # ----------------------------------------------------------------------------
 merge forward:
-  extends: .auto-merge-forward
+  extends: .merge-forward
   stage: release
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
-    - !reference [.rules//never-if-merge-request,   rules]
-    - !reference [.rules//never-if-gitlab-ci-local, rules]
     - !reference [.rules//if-release-branch,        rules]
