@@ -17,7 +17,7 @@ include:
         - image build (glab)
 
   - local: templates/defaults.yml
-  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .merge-forward.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
   - local: .scratch.gitlab-ci.yml
@@ -68,8 +68,8 @@ pipeline version test:
 
 
 # ============================================================================
-auto merge forward:
-  extends: .auto-merge-forward
+merge forward:
+  extends: .merge-forward
   image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
 
 
