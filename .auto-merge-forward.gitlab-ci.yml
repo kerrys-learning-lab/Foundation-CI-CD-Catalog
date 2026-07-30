@@ -60,7 +60,6 @@ include:
       else
         GLAB_CREATE_CLI_ARGS=()
         GLAB_CREATE_CLI_ARGS+=(--yes)
-        GLAB_CREATE_CLI_ARGS+=(--auto-merge)
         GLAB_CREATE_CLI_ARGS+=(--title "Auto merge ${CI_COMMIT_BRANCH} --> ${MERGE_TARGET_BRANCH}")
         GLAB_CREATE_CLI_ARGS+=(--description "Created by Pipeline ${CI_PIPELINE_IID}")
         GLAB_CREATE_CLI_ARGS+=(--source-branch ${CI_COMMIT_BRANCH})
