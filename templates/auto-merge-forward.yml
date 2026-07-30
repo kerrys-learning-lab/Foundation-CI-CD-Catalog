@@ -22,7 +22,7 @@ include:
 # ----------------------------------------------------------------------------
 merge forward:
   extends: .auto-merge-forward
-  stage: $[[ inputs.stage ]]
+  stage: release
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
