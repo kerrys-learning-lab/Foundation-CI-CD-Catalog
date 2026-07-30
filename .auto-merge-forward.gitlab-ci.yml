@@ -7,6 +7,7 @@ include:
 .auto-merge-forward:
   stage: release
   variables:
+    GIT_DEPTH: 0
     GLAB_CHECK_UPDATE: false
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
@@ -34,6 +35,9 @@ include:
       if git ls-remote --exit-code --heads origin ${NEXT_MINOR_RELEASE_BRANCH}; then
         MERGE_TARGET_BRANCH=${NEXT_MINOR_RELEASE_BRANCH}
       fi
+
+      # Fetch the *full* commit history for the target branch, in preparation:
+      git fetch --quiet origin "+refs/heads/${MERGE_TARGET_BRANCH}:refs/remotes/origin/${MERGE_TARGET_BRANCH}"
 
       if git merge-base --is-ancestor HEAD origin/${MERGE_TARGET_BRANCH}; then
         echo "🟢 All commits from ${CI_COMMIT_BRANCH} already exist in ${MERGE_TARGET_BRANCH}."
