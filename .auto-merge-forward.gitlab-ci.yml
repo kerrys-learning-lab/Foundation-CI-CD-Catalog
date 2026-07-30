@@ -35,7 +35,7 @@ include:
         MERGE_TARGET_BRANCH=${NEXT_MINOR_RELEASE_BRANCH}
       fi
 
-      if git merge-base --is-ancestor HEAD origin/main; then
+      if git merge-base --is-ancestor HEAD origin/${MERGE_TARGET_BRANCH}; then
         echo "🟢 All commits from ${CI_COMMIT_BRANCH} already exist in ${MERGE_TARGET_BRANCH}."
         exit 0
       fi

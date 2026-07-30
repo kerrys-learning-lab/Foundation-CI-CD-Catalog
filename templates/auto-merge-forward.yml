@@ -2,25 +2,6 @@
 # Merges a release branch (e.g., 'release/1.0') to the default branch
 # (e.g., 'main')
 spec:
-  inputs:
-
-    # ------------------------------------------------------------------------
-    stage:
-      description:  The stage for the this Job
-      type: string
-      default: release
-
-    # ------------------------------------------------------------------------
-    # These settings affect Job names for all Jobs instantiated by the component
-    job_name_prefix:
-      description: Optional prefix for the Job names
-      type: string
-      default: ''
-
-    job_name_suffix:
-      description: Optional suffix for the Job names
-      type: string
-      default: ''
 
 
   component:
@@ -39,7 +20,7 @@ include:
 
 
 # ----------------------------------------------------------------------------
-"$[[ inputs.job_name_prefix ]]merge forward$[[ inputs.job_name_suffix ]]":
+merge forward:
   extends: .auto-merge-forward
   stage: $[[ inputs.stage ]]
   variables:
