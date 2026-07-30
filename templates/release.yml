@@ -25,5 +25,6 @@ release:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
+    - !reference [.rules//never-if-merge-request    rules]
     - !reference [.rules//never-if-gitlab-ci-local, rules]
     - !reference [.rules//if-protected-tag,         rules]

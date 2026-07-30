@@ -53,15 +53,14 @@ default:
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
 
+    # Tags and protected branches are built upon push
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
 
     # De-duplication, for merges to protected branches
     # Filter in CI_PIPELINE_SOURCE so that triggered piplines aren't impacted
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
-
-    # Tags and protected branches are still built
-    - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_REF_PROTECTED == "true"
 
     - when: never
 
