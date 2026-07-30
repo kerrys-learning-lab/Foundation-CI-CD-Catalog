@@ -34,8 +34,7 @@ include:
 #                                         inferred
 #
 # Outputs:
-#   SEMANTIC_VERSION            full SemVer (may include -rc / +build)
-#   SEMANTIC_VERSION_SLUG       full SemVer (may include -rc / -build)
+#   SEMANTIC_VERSION            full SemVer (may include -rc / .build)
 #   SEMANTIC_VERSION_MAJOR      major component
 #   SEMANTIC_VERSION_MINOR      minor component
 #   SEMANTIC_VERSION_PATCH      patch component
@@ -96,7 +95,6 @@ include:
 
       RELEASE_TRAIN=
       SEMANTIC_VERSION=
-      SEMANTIC_VERSION_SLUG=
       SEMANTIC_VERSION_MAJOR=
       SEMANTIC_VERSION_MINOR=
       SEMANTIC_VERSION_PATCH=
@@ -105,7 +103,6 @@ include:
       OUTPUT_VARS=()
       OUTPUT_VARS+=(RELEASE_TRAIN)
       OUTPUT_VARS+=(SEMANTIC_VERSION)
-      OUTPUT_VARS+=(SEMANTIC_VERSION_SLUG)
       OUTPUT_VARS+=(SEMANTIC_VERSION_MAJOR)
       OUTPUT_VARS+=(SEMANTIC_VERSION_MINOR)
       OUTPUT_VARS+=(SEMANTIC_VERSION_PATCH)
@@ -201,7 +198,7 @@ include:
           SEMANTIC_VERSION_PATCH=$((${SEMANTIC_VERSION_PATCH} + 1))
         fi
 
-        SEMANTIC_VERSION=${RELEASE_TRAIN}.${SEMANTIC_VERSION_PATCH}-rc+${CI_PIPELINE_IID}
+        SEMANTIC_VERSION=${RELEASE_TRAIN}.${SEMANTIC_VERSION_PATCH}-rc.${CI_PIPELINE_IID}
       fi
 
 
@@ -212,7 +209,7 @@ include:
         SEMANTIC_VERSION_MINOR=${BASH_REMATCH[2]}
         SEMANTIC_VERSION_PATCH=${BASH_REMATCH[3]}
 
-        SEMANTIC_VERSION=${SEMANTIC_VERSION_MAJOR}.${SEMANTIC_VERSION_MINOR}.${SEMANTIC_VERSION_PATCH}-${CI_COMMIT_REF_SLUG}+${CI_PIPELINE_IID}
+        SEMANTIC_VERSION=${SEMANTIC_VERSION_MAJOR}.${SEMANTIC_VERSION_MINOR}.${SEMANTIC_VERSION_PATCH}-${CI_COMMIT_REF_SLUG}.${CI_PIPELINE_IID}
 
         if [[ "${CI_PIPELINE_SOURCE}" != "merge_request_event" ]]; then
           if [[ ${CI_COMMIT_REF_NAME} == ${CI_DEFAULT_BRANCH} ]]; then
@@ -228,8 +225,6 @@ include:
         exit 200
       fi
 
-
-      SEMANTIC_VERSION_SLUG=${SEMANTIC_VERSION//+/-}
 
       for var in ${OUTPUT_VARS[@]}; do
         echo "${var}=${!var}" | tee --append ${JOB_ARTIFACTS_DIR}/semver.env

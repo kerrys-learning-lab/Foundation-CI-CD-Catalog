@@ -139,9 +139,9 @@ default:
       # --- print-job-settings -----------------------------------------------
       TABLE_ROWS=()
       if [[ -n "${COMPONENT_NAME}" && -n "${COMPONENT_REFERENCE}" ]]; then
-        TABLE_ROWS=("--------------------;--------------------")
+        TABLE_ROWS+=("--------------------;--------------------")
         TABLE_ROWS+=("🏷️ ${COMPONENT_NAME};${COMPONENT_REFERENCE}")
-        TABLE_ROWS=("--------------------;--------------------")
+        TABLE_ROWS+=("--------------------;--------------------")
       fi
       if [[ -n "${JOB_SETTINGS}" ]]; then
         TABLE_ROWS+=("${JOB_SETTINGS[@]}")

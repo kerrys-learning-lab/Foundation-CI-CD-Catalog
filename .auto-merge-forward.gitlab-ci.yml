@@ -8,6 +8,7 @@ include:
   stage: release
   image: $GLAB_JOB_IMAGE
   variables:
+    GIT_DEPTH: 0
     GLAB_CHECK_UPDATE: false
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
@@ -33,7 +34,10 @@ include:
         MERGE_TARGET_BRANCH=${NEXT_MINOR_RELEASE_BRANCH}
       fi
 
-      if git merge-base --is-ancestor HEAD origin/main; then
+      # Fetch the *full* commit history for the target branch, in preparation:
+      git fetch --quiet origin "+refs/heads/${MERGE_TARGET_BRANCH}:refs/remotes/origin/${MERGE_TARGET_BRANCH}"
+
+      if git merge-base --is-ancestor HEAD origin/${MERGE_TARGET_BRANCH}; then
         echo "🟢 All commits from ${CI_COMMIT_BRANCH} already exist in ${MERGE_TARGET_BRANCH}."
         exit 0
       fi
@@ -56,7 +60,6 @@ include:
       else
         GLAB_CREATE_CLI_ARGS=()
         GLAB_CREATE_CLI_ARGS+=(--yes)
-        GLAB_CREATE_CLI_ARGS+=(--auto-merge)
         GLAB_CREATE_CLI_ARGS+=(--title "Auto merge ${CI_COMMIT_BRANCH} --> ${MERGE_TARGET_BRANCH}")
         GLAB_CREATE_CLI_ARGS+=(--description "Created by Pipeline ${CI_PIPELINE_IID}")
         GLAB_CREATE_CLI_ARGS+=(--source-branch ${CI_COMMIT_BRANCH})
