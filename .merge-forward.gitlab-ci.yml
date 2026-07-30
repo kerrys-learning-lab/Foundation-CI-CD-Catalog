@@ -4,7 +4,7 @@ include:
 
 
 # ============================================================================
-.auto-merge-forward:
+.merge-forward:
   stage: release
   variables:
     GIT_DEPTH: 0
@@ -17,7 +17,7 @@ include:
     - !reference [.scratch//install-glab, before_script]
     - !reference [default,                before_script]
     - |
-      # --- auto merge forward (before) --------------------------------------
+      # --- merge forward (before) -------------------------------------------
       if [[ -z "${RELEASE_TRAIN}" ]]; then
         echo "❌  Can only merge forward from a release branch!"
         echo "    Expected: 'release/X.Y'"
@@ -28,7 +28,7 @@ include:
       echo ${GITLAB_CICD_BOT_TOKEN} | glab auth login --hostname ${CI_SERVER_HOST} --stdin
   script:
     - |
-      # --- auto merge forward -----------------------------------------------
+      # --- merge forward ----------------------------------------------------
       MERGE_TARGET_BRANCH=${CI_DEFAULT_BRANCH}
       NEXT_MINOR_RELEASE_BRANCH=release/${SEMANTIC_VERSION_MAJOR}.$((${SEMANTIC_VERSION_MINOR} + 1))
 

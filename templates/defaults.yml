@@ -66,6 +66,14 @@ default:
 
 
 # ============================================================================
+.rules//branch-as-primary-workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - when: always
+
+
+# ============================================================================
 .rules//if-default-branch:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -100,13 +108,6 @@ default:
 .rules//if-release-branch:
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^release\/.*/
-
-
-# ============================================================================
-.rules//never-if-merge-request:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: never
 
 
 # ============================================================================

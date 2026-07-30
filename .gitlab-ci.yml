@@ -1,7 +1,7 @@
 # ============================================================================
 include:
   - local: templates/defaults.yml
-  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .merge-forward.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
   - local: .scratch.gitlab-ci.yml
@@ -29,8 +29,8 @@ bashunit test:
 
 
 # ============================================================================
-auto merge forward:
-  extends: .auto-merge-forward
+merge forward:
+  extends: .merge-forward
 
 
 # ============================================================================

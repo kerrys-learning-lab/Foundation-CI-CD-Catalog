@@ -16,12 +16,12 @@ spec:
 # ----------------------------------------------------------------------------
 include:
   - local: templates/defaults.yml
-  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .merge-forward.gitlab-ci.yml
 
 
 # ----------------------------------------------------------------------------
 merge forward:
-  extends: .auto-merge-forward
+  extends: .merge-forward
   stage: release
   variables:
     COMPONENT_NAME: $[[ component.name ]]
