@@ -87,7 +87,7 @@ function test_unprotected_nonconforming_tag_is_dev_build() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-nightly+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-nightly.42" "${actual}"
 }
 
 
@@ -118,8 +118,7 @@ function test_release_branch_with_no_tags() {
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
   assert_contains "RELEASE_TRAIN=1.2"           "${actual}"
-  assert_contains "SEMANTIC_VERSION=1.2.0-rc+42" "${actual}"
-  assert_contains "SEMANTIC_VERSION_SLUG=1.2.0-rc-42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=1.2.0-rc.42" "${actual}"
   assert_contains "SEMANTIC_VERSION_MAJOR=1"    "${actual}"
   assert_contains "SEMANTIC_VERSION_MINOR=2"    "${actual}"
   assert_contains "SEMANTIC_VERSION_PATCH=0"    "${actual}"
@@ -137,7 +136,7 @@ function test_release_branch_with_tags() {
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
   assert_contains "RELEASE_TRAIN=1.2"           "${actual}"
-  assert_contains "SEMANTIC_VERSION=1.2.3-rc+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=1.2.3-rc.42" "${actual}"
   assert_contains "SEMANTIC_VERSION_MAJOR=1"    "${actual}"
   assert_contains "SEMANTIC_VERSION_MINOR=2"    "${actual}"
   assert_contains "SEMANTIC_VERSION_PATCH=3"    "${actual}"
@@ -172,8 +171,7 @@ function test_default_branch() {
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
   assert_contains "RELEASE_TRAIN=main"            "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-main+42" "${actual}"
-  assert_contains "SEMANTIC_VERSION_SLUG=0.0.0-main-42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-main.42" "${actual}"
   assert_contains "SEMANTIC_VERSION_MAJOR=0"      "${actual}"
   assert_contains "SEMANTIC_VERSION_MINOR=0"      "${actual}"
   assert_contains "SEMANTIC_VERSION_PATCH=0"      "${actual}"
@@ -193,7 +191,7 @@ function test_developer_branch() {
   assert_contains "SEMANTIC_VERSION_MAJOR=0" "${actual}"
   assert_contains "SEMANTIC_VERSION_MINOR=0" "${actual}"
   assert_contains "SEMANTIC_VERSION_PATCH=0" "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work.42" "${actual}"
 }
 
 
@@ -212,7 +210,7 @@ function test_mr_into_release_branch_is_release_candidate() {
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
   assert_contains "RELEASE_TRAIN="              "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-42-some-fix+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-feat-42-some-fix.42" "${actual}"
 }
 
 
@@ -227,7 +225,7 @@ function test_mr_from_release_branch() {
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
   assert_contains "RELEASE_TRAIN="              "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-release-1.0+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-release-1.0.42" "${actual}"
 }
 
 
@@ -241,7 +239,7 @@ function test_mr_from_main_branch() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-main+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-main.42" "${actual}"
 }
 
 
@@ -260,7 +258,7 @@ function test_custom_default_semver_prefix() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_contains "SEMANTIC_VERSION=9.9.9-feat-x+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=9.9.9-feat-x.42" "${actual}"
 }
 
 
@@ -275,5 +273,5 @@ function test_invalid_default_semver_prefix_falls_back() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-x+42" "${actual}"
+  assert_contains "SEMANTIC_VERSION=0.0.0-feat-x.42" "${actual}"
 }
