@@ -49,21 +49,23 @@ include:
     - |
       # --- release ----------------------------------------------------------
       mkdir -p ${RELEASE_NOTES_DIR}
-      echo "Release ${CI_COMMIT_TAG}" | tee ${RELEASE_README_FILEPATH}
+      echo "Release ${CI_COMMIT_TAG}"
 
-      echo ""                               >> ${RELEASE_README_FILEPATH}
+      echo "# Release ${CI_COMMIT_TAG}"     >   ${RELEASE_README_FILEPATH}
+      echo ""                               >>  ${RELEASE_README_FILEPATH}
       echo "Created by [Pipeline ${CI_PIPELINE_IID}](${CI_PIPELINE_URL})"     >> ${RELEASE_README_FILEPATH}
-      echo ""                               >> ${RELEASE_README_FILEPATH}
+      echo ""                               >>  ${RELEASE_README_FILEPATH}
 
       # ----------------------------------------------------------------------
       # Process the release notes for each type:
       for title in "${!RELEASE_NOTES_FILES[@]}"; do
-        echo "## ${title}(s)"               >> ${RELEASE_README_FILEPATH}
-        echo ""                             >> ${RELEASE_README_FILEPATH}
+        echo "## ${title}(s)"               >>  ${RELEASE_README_FILEPATH}
+        echo ""                             >>  ${RELEASE_README_FILEPATH}
 
         for md in ${RELEASE_NOTES_FILES["${title}"]}; do
-          cat ${md}                         >> ${RELEASE_README_FILEPATH}
-          echo ""                           >> ${RELEASE_README_FILEPATH}
+          cat ${md}                         >>  ${RELEASE_README_FILEPATH}
+          echo ""                           >>  ${RELEASE_README_FILEPATH}
+
           echo "📗 Processed ${title} Release Notes: $(basename ${md})"
         done
       done
