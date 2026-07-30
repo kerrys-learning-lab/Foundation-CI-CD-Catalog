@@ -20,7 +20,7 @@ include:
 # ============================================================================
 release:
   extends: .release
-  stage: $[[ inputs.stage ]]
+  stage: release
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
