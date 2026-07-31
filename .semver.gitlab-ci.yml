@@ -58,6 +58,7 @@ include:
       JOB_SETTINGS+=("🏷️ CI_COMMIT_TAG;${CI_COMMIT_TAG}")
       JOB_SETTINGS+=("🔓 CI_COMMIT_REF_PROTECTED;${CI_COMMIT_REF_PROTECTED}")
       JOB_SETTINGS+=("🪹 CI_DEFAULT_BRANCH;${CI_DEFAULT_BRANCH}")
+      JOB_SETTINGS+=("✨ DEFAULT_SEMVER_PREFIX;${DEFAULT_SEMVER_PREFIX}")
     - !reference [default,  before_script]
   script:
     - |
@@ -227,10 +228,12 @@ include:
         exit 200
       fi
 
-
+      TABLE_ROWS=()
       for var in ${OUTPUT_VARS[@]}; do
-        echo "${var}=${!var}" | tee --append ${JOB_ARTIFACTS_DIR}/semver.env
+        echo "${var}=${!var}" >> ${JOB_ARTIFACTS_DIR}/semver.env
+        TABLE_ROWS+=("🏷️ ${var};${!var}")
       done
+    - !reference [.print-table, script]
   artifacts:
     paths:
       - ${JOB_ARTIFACTS_DIR}
