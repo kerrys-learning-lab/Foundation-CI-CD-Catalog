@@ -47,7 +47,6 @@ include:
 # ----------------------------------------------------------------------------
 pipeline version:
   extends: .pipeline-version
-  stage: .pre
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
