@@ -29,13 +29,13 @@ function test_protected_release_tag() {
   export CI_COMMIT_REF_NAME=v1.2.3
   export CI_COMMIT_REF_PROTECTED=true
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN=1.2"        "${actual}"
-  assert_contains "SEMANTIC_VERSION=1.2.3"   "${actual}"
-  assert_contains "SEMANTIC_VERSION_MAJOR=1" "${actual}"
-  assert_contains "SEMANTIC_VERSION_MINOR=2" "${actual}"
-  assert_contains "SEMANTIC_VERSION_PATCH=3" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.3"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=3"
 }
 
 
@@ -88,7 +88,7 @@ function test_unprotected_nonconforming_tag_is_dev_build() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-nightly.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=0.0.0-nightly.42"
 }
 
 
@@ -116,13 +116,13 @@ function test_release_branch_with_no_tags() {
   export CI_COMMIT_REF_NAME=release/1.2
   export CI_COMMIT_REF_PROTECTED=true
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN=1.2"           "${actual}"
-  assert_contains "SEMANTIC_VERSION=1.2.0-rc.42" "${actual}"
-  assert_contains "SEMANTIC_VERSION_MAJOR=1"    "${actual}"
-  assert_contains "SEMANTIC_VERSION_MINOR=2"    "${actual}"
-  assert_contains "SEMANTIC_VERSION_PATCH=0"    "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.0-rc.42"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=0"
 }
 
 
@@ -134,13 +134,13 @@ function test_release_branch_with_tags() {
   export CI_COMMIT_REF_PROTECTED=true
   export TAGS_FOR_RELEASE_TRAIN="v1.2.0  v1.2.1  v1.2.2"
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN=1.2"           "${actual}"
-  assert_contains "SEMANTIC_VERSION=1.2.3-rc.42" "${actual}"
-  assert_contains "SEMANTIC_VERSION_MAJOR=1"    "${actual}"
-  assert_contains "SEMANTIC_VERSION_MINOR=2"    "${actual}"
-  assert_contains "SEMANTIC_VERSION_PATCH=3"    "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=1.2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=1.2.3-rc.42"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=3"
 }
 
 
@@ -169,13 +169,13 @@ function test_default_branch() {
   export CI_COMMIT_REF_SLUG=main
   export CI_COMMIT_REF_PROTECTED=true
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN=main"            "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-main.42" "${actual}"
-  assert_contains "SEMANTIC_VERSION_MAJOR=0"      "${actual}"
-  assert_contains "SEMANTIC_VERSION_MINOR=0"      "${actual}"
-  assert_contains "SEMANTIC_VERSION_PATCH=0"      "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=main"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
 }
 
 
@@ -187,12 +187,12 @@ function test_developer_branch() {
   export CI_COMMIT_REF_SLUG=feat-18-developer-doing-work
   export CI_COMMIT_REF_PROTECTED=false
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "SEMANTIC_VERSION_MAJOR=0" "${actual}"
-  assert_contains "SEMANTIC_VERSION_MINOR=0" "${actual}"
-  assert_contains "SEMANTIC_VERSION_PATCH=0" "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work.42"
 }
 
 
@@ -208,10 +208,10 @@ function test_mr_into_release_branch_is_release_candidate() {
   export CI_COMMIT_REF_PROTECTED=false
   export CI_PIPELINE_SOURCE=merge_request_event
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN="              "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-42-some-fix.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-42-some-fix.42"
 }
 
 
@@ -223,10 +223,10 @@ function test_mr_from_release_branch() {
   export CI_COMMIT_REF_PROTECTED=true
   export CI_PIPELINE_SOURCE=merge_request_event
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "RELEASE_TRAIN="              "${actual}"
-  assert_contains "SEMANTIC_VERSION=0.0.0-release-1.0.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-release-1.0.42"
 }
 
 
@@ -238,9 +238,9 @@ function test_mr_from_main_branch() {
   export CI_COMMIT_REF_PROTECTED=true
   export CI_PIPELINE_SOURCE=merge_request_event
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-main.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
 }
 
 
@@ -257,9 +257,9 @@ function test_custom_default_semver_prefix() {
   export CI_COMMIT_REF_PROTECTED=false
   export DEFAULT_SEMVER_PREFIX=v9.9.9
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "SEMANTIC_VERSION=9.9.9-feat-x.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=9.9.9-feat-x.42"
 }
 
 
@@ -272,7 +272,7 @@ function test_invalid_default_semver_prefix_falls_back() {
   export CI_COMMIT_REF_PROTECTED=false
   export DEFAULT_SEMVER_PREFIX=not-a-semver
 
-  local actual=$(/usr/local/bin/uut--semver--pipeline-version)
+  /usr/local/bin/uut--semver--pipeline-version
 
-  assert_contains "SEMANTIC_VERSION=0.0.0-feat-x.42" "${actual}"
+  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-x.42"
 }
