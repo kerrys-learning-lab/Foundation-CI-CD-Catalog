@@ -45,6 +45,7 @@ include:
   stage: .pre
   image: $GLAB_JOB_IMAGE
   variables:
+    SEMVER_STRICT: true
     # We need access to all tag refs in order to accurately calculate the
     # release candidate information:
     GIT_FETCH_EXTRA_FLAGS: --prune --quiet --tags
@@ -117,11 +118,11 @@ include:
       # ----------------------------------------------------------------------
       if [[ -n "${CI_COMMIT_TAG}" ]]; then
         if [[ ${CI_COMMIT_TAG} =~ ${RELEASE_TAG_REGEX} ]]; then
-          if [[ ${CI_COMMIT_REF_PROTECTED} == false ]]; then
+          if [[ ${CI_COMMIT_REF_PROTECTED} == false && ${SEMVER_STRICT} == true ]]; then
             echo "❌  Release tags (vX.Y.Z) should be protected"  >&2
             exit 150
           fi
-        elif [[ ${CI_COMMIT_REF_PROTECTED} == true ]]; then
+        elif [[ ${CI_COMMIT_REF_PROTECTED} == true && ${SEMVER_STRICT} == true ]]; then
           echo "❌  Protected tag (${CI_COMMIT_TAG}) is not a valid SemVer" >&2
           echo "    Expected vX.Y.Z" >&2
           exit 155
@@ -131,11 +132,11 @@ include:
       # ----------------------------------------------------------------------
       if [[ -z "${CI_COMMIT_TAG}" && -n "${CI_COMMIT_BRANCH}" ]]; then
         if  [[ ${CI_COMMIT_BRANCH} =~ ${RELEASE_BRANCH_REGEX} ]]; then
-          if [[ ${CI_COMMIT_REF_PROTECTED} == false ]]; then
+          if [[ ${CI_COMMIT_REF_PROTECTED} == false && ${SEMVER_STRICT} == true ]]; then
             echo "❌  Release branches (release/X.Y) should be protected" >&2
             exit 160
           fi
-        elif [[ ${CI_COMMIT_BRANCH} != ${CI_DEFAULT_BRANCH} && ${CI_COMMIT_REF_PROTECTED} == true ]]; then
+        elif [[ ${CI_COMMIT_BRANCH} != ${CI_DEFAULT_BRANCH} && ${CI_COMMIT_REF_PROTECTED} == true && ${SEMVER_STRICT} == true ]]; then
           echo "❌  Protected branch (${CI_COMMIT_BRANCH}) is not valid"  >&2
           echo "    Expected: 'release/X.Y' or ${CI_DEFAULT_BRANCH}"      >&2
           exit 165
