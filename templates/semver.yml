@@ -14,6 +14,13 @@
 spec:
 
 
+  strict:
+    description:  If true, protected branchs and tags which don't conform to
+                  the guidelines will fail the Pipeline.
+    type: boolean
+    default: true
+
+
   component:
     - name
     - version
@@ -37,3 +44,4 @@ pipeline version:
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
+    SEMVER_STRICT: $[[ inputs.strict ]]
