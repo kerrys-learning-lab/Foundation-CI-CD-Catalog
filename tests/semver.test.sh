@@ -14,6 +14,7 @@ function set_up() {
   export DEFAULT_SEMVER_PREFIX=
   export TAGS_FOR_RELEASE_TRAIN=
   export JOB_ARTIFACTS_DIR=$(bashunit::temp_dir)
+  export SEMVER_STRICT=true
 }
 
 
