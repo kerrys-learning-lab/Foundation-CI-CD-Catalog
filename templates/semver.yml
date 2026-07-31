@@ -14,11 +14,19 @@
 spec:
 
   inputs:
+
     strict:
       description:  If true, protected branchs and tags which don't conform to
                     the guidelines will fail the Pipeline.
       type: boolean
       default: true
+
+    default_semver_prefix:
+      description:  If a semantic version cannot be inferred from the CI/CD
+                    Pipeline variables, this value will be used as the fallback
+                    SemVer prefix.  Must be of the form vMAJOR.MINOR.PATCH
+      type: string
+      default: v0.0.0
 
 
   component:
@@ -44,4 +52,5 @@ pipeline version:
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
+    DEFAULT_SEMVER_PREFIX: $[[ inputs.default_semver_prefix ]]
     SEMVER_STRICT: $[[ inputs.strict ]]

@@ -45,6 +45,7 @@ include:
   stage: .pre
   image: $GLAB_JOB_IMAGE
   variables:
+    DEFAULT_SEMVER_PREFIX: v0.0.0
     SEMVER_STRICT: true
     # We need access to all tag refs in order to accurately calculate the
     # release candidate information:
