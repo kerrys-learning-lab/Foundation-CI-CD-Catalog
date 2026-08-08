@@ -23,7 +23,8 @@ include:
         exit 10
       fi
 
-      echo ${GITLAB_CICD_BOT_TOKEN} | glab auth login --hostname ${CI_SERVER_HOST} --stdin
+      echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
+                                                --stdin
   script:
     - |
       # --- merge forward ----------------------------------------------------

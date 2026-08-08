@@ -16,8 +16,8 @@ include:
   before_script:
     - |
       # --- release (before) -------------------------------------------------
-      echo ${GITLAB_CICD_BOT_TOKEN} | glab auth login --hostname ${CI_SERVER_HOST}  \
-                                                      --stdin
+      echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
+                                                --stdin
 
       # ----------------------------------------------------------------------
       # Gather the Release Notes MD files, by type:
