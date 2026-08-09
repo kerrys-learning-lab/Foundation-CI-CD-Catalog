@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.westsidestreet.net/kerrys-learning-lab/devsecops/cicd-catalog/foundation.git
+git remote add origin https://gitlab.westsidestreet.net/devsecops/cicd-catalog/foundation.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-* [Set up project integrations](https://gitlab.westsidestreet.net/kerrys-learning-lab/devsecops/cicd-catalog/foundation/-/settings/integrations)
+* [Set up project integrations](https://gitlab.westsidestreet.net/devsecops/cicd-catalog/foundation/-/settings/integrations)
 
 ## Collaborate with your team
 

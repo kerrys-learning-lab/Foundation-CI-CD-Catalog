@@ -1,13 +1,13 @@
 # ============================================================================
 include:
-  - component: $CI_SERVER_FQDN/kerrys-learning-lab/devsecops/cicd-catalog/image/pipeline@release/0.1
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.1
     inputs:
       target: glab
       unit_test_enabled: false
       structure_test_enabled: false
       job_name_suffix: " (glab)"
 
-  - component: $CI_SERVER_FQDN/kerrys-learning-lab/devsecops/cicd-catalog/image/pipeline@release/0.1
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.1
     inputs:
       target: bashunit
       unit_test_enabled: false
