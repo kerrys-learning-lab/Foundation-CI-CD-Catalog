@@ -1,0 +1,128 @@
+# ============================================================================
+.tarfile-base:
+  variables:
+    TARFILE_NAME: default               # CI_PROJECT_NAME
+    TARFILE_VERSION: SEMANTIC_VERSION   # Will be expanded
+    TARFILE_EXTENSION: tar.gz
+    TARFILE_DEFAULT_EXCLUDES:
+      .dockerignore
+      .git*
+      .vscode
+      .pipeline-artifacts
+
+
+# ============================================================================
+.tarfile-build:
+  stage: build
+  extends: .tarfile-base
+  variables:
+    TARFILE_MEMBERS: .
+    TARFILE_CONTEXT: .
+    TARFILE_IGNOREFILE: .tarignore
+    TARFILE_TRANSFORM_PREFIX: default # Use 'none' to not tranform the contents
+                                      # to be relative to the given prefix
+                                      # (by default, the prefix is based on the
+                                      # project name and semantic version slug)
+    TARFILE_VERBOSE: false
+  before_script:
+    - |
+      # --- tarfile build (before) -------------------------------------------
+      if [[ -z "${TARFILE_NAME}" || "${TARFILE_NAME}" == default ]]; then
+        TARFILE_NAME=${CI_PROJECT_NAME,,}
+      fi
+
+      # If TARFILE_VERSION is a valid Bash identifier, expand it:
+      if [[ ${TARFILE_VERSION} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ && -n "${!TARFILE_VERSION}" ]]; then
+        TARFILE_VERSION=${!TARFILE_VERSION}
+      fi
+
+      TARFILE_FULL_NAME=${TARFILE_NAME}-${TARFILE_VERSION}.${TARFILE_EXTENSION}
+
+      if [[ -n "${TARFILE_IGNOREFILE}" && -f ${TARFILE_IGNOREFILE} ]]; then
+        TARCMD_CLI_ARGS+=(--exclude-from=${TARFILE_IGNOREFILE})
+      fi
+
+      if [[ "${TARCMD_VERBOSE}" == "true" ]]; then
+        TARCMD_CLI_ARGS+=(--verbose)
+      fi
+
+      if [[ -n "${TARFILE_TRANSFORM_PREFIX}" && "${TARFILE_TRANSFORM_PREFIX}" != "none" ]]; then
+        if [[ "${TARFILE_TRANSFORM_PREFIX}" == default ]]; then
+          TARFILE_TRANSFORM_PREFIX=${TARFILE_NAME,,}-${TARFILE_VERSION,,}
+        fi
+
+        # Ensure the prefix ends with exactly one '/'
+        TARFILE_TRANSFORM_PREFIX=${TARFILE_TRANSFORM_PREFIX%/}/
+      else
+        TARFILE_TRANSFORM_PREFIX=
+      fi
+      TARCMD_CLI_ARGS+=(--transform="s|^\./|${TARFILE_TRANSFORM_PREFIX}|S")
+
+      if [[ "${TARFILE_MEMBERS}" == "." ]]; then
+        TARFILE_MEMBERS=./
+      else
+        TARFILE_MEMBERS_COPY="${TARFILE_MEMBERS}"
+        TARFILE_MEMBERS=
+        for entry in ${TARFILE_MEMBERS_COPY}; do
+          TARFILE_MEMBERS+="./${entry#./} "
+        done
+      fi
+
+      JOB_SETTINGS+=("📛 Tarfile name;${TARFILE_FULL_NAME}")
+      JOB_SETTINGS+=("❄️ Tarfile version;${TARFILE_VERSION}")
+      JOB_SETTINGS+=("❄️ Tarfile context;${TARFILE_CONTEXT}")
+      JOB_SETTINGS+=("🧺 Tarfile members;${TARFILE_MEMBERS}")
+      if [[ -n "${TARFILE_TRANSFORM_PREFIX}" ]]; then
+        JOB_SETTINGS+=("⛓️ Tarfile content transform;${TARFILE_TRANSFORM_PREFIX}")
+      fi
+    - !reference [default,  before_script]
+  script:
+    - |
+      # --- tarfile build ----------------------------------------------------
+      # We build to a temp location, just in case the caller is creating the
+      # tarfile in the same directory as the context ... we'll move it into
+      # the correct location after it's built
+      TARFILE_TEMP_DEST=$(mktemp --suffix=.${TARFILE_EXTENSION})
+
+      TARCMD_CLI_ARGS+=(--create)
+      TARCMD_CLI_ARGS+=(--auto-compress)
+      TARCMD_CLI_ARGS+=(--directory ${TARFILE_CONTEXT})
+      TARCMD_CLI_ARGS+=(--file ${TARFILE_TEMP_DEST})
+      TARCMD_CLI_ARGS+=(--exclude-vcs)
+
+
+      echo "📦 Creating archive: ${TARFILE_FULL_NAME}"
+      tar "${TARCMD_CLI_ARGS[@]}" ${TARFILE_MEMBERS}
+
+      mv ${TARFILE_TEMP_DEST} ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
+  artifacts:
+    paths:
+      - ${JOB_ARTIFACTS_DIR}
+    expire_in: 1 week
+
+
+# ============================================================================
+.tarfile-publish:
+  stage: publish
+  extends: .tarfile-base
+  before_script:
+    - !reference [.tarfile-base,  before_script]
+    - |
+      # --- tarfile publish (before) -----------------------------------------
+      if [[ ! -f "${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}" ]]; then
+        echo "❌  Error: Tarfile not found: ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}"
+        exit 10
+      fi
+
+      echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
+                                                --stdin
+  script:
+    - |
+      # --- tarfile publish --------------------------------------------------
+      glab packages upload  --name      ${TARFILE_NAME}  \
+                            --version   ${TARFILE_VERSION}  \
+                            --filename  ${TARFILE_FULL_NAME}  \
+                            ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED =~ /true/
+    - if: $GITLABCI_UPLOAD_TARFILE_PACKAGE_FORCE =~ /true/
