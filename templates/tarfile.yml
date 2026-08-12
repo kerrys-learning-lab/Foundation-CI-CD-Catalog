@@ -1,0 +1,138 @@
+# ============================================================================
+spec:
+  inputs:
+
+    # ------------------------------------------------------------------------
+    # These settings affect the tarfile artifact
+    name:
+      description:  |
+                    The short name of the tar artifact.  This equates to the
+                    package name in GitLab parlance.  Should not contain
+                    path elements or the file extension.  If not specified,
+                    defaults to CI_PROJECT_NAME
+      type: string
+      default: ''
+
+    version:
+      description:  |
+                    The version nomenclature to use for the packaged artifact.
+                    Variables will be expanded.  Defaults to SEMANTIC_VERSION
+      type: string
+      default: SEMANTIC_VERSION
+
+    extension:
+      description:  |
+                    The file extension to be used for the resulting tarfile.
+                    NOTE: Tar 'auto-compression' is enabled.  Therefore, the
+                          file extension should be a recognizable compression
+                          format or just 'tar' for no compression
+      type: string
+      default: tar.gz
+
+    # ------------------------------------------------------------------------
+    # These settings affect the building of the tarfile
+    context:
+      description:  |
+                    The root directory containing the contents to be included
+                    in the tarfile
+      type: string
+      default: .
+
+    members:
+      description:  The contents to be added to the tarfile
+      type: string
+      default: .
+
+    ignorefile:
+      description:  Path to a file containing exclusion patterns
+      type: string
+      default: .tarignore
+
+    transform:
+      description:  |
+                    If specified, content names within the tarfile will be
+                    transformed according to the given prefix.  By default,
+                    all contents will be transformed to be relative to a
+                    directory based on 'name' and 'version' (for example,
+                    the file ./foo.txt is transformed to my-project-1.2.3/foo.txt)
+                    Use the literal word 'none' for no transformation
+      type: string
+      default: default
+
+    build_stage:
+      description: Assigns the Pipeline stage for the 'tarfile build' Job
+      type: string
+      default: build
+
+
+    # ------------------------------------------------------------------------
+    # These settings affect the publishing of the tarfile
+    publish_mode:
+      description:  Sets the publish mode for the tarfile artifact.  Default - 'protected'
+      type: string
+      options:
+        - protected   # Only protected refs are pushed to the package registry (default)
+        - never       # Do not push refs (including protected) to the package registry
+        - always      # Push refs (including unprotected) to the package registry.
+      default: protected
+
+    publish_stage:
+      description: Assigns the Pipeline stage for the 'tarfile publish' Job
+      type: string
+      default: publish
+
+    # ------------------------------------------------------------------------
+    # These settings affect Job names for all Jobs instantiated by the component
+    job_name_prefix:
+      description: Optional prefix for this Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for this Job's name
+      type: string
+      default: ''
+
+
+  component:
+    - name
+    - version
+    - reference
+
+
+---
+include:
+  - local: .tarfile.gitlab-ci.yml
+
+
+# ============================================================================
+"$[[ inputs.job_name_prefix ]]tarfile build$[[ inputs.job_name_suffix ]]":
+  extends: .tarfile-build
+  stage: $[[ inputs.build_stage ]]
+  variables:
+    TARFILE_NAME: $[[ inputs.name ]]
+    TARFILE_VERSION: $[[ inputs.version ]]
+    TARFILE_EXTENSION: $[[ inputs.extension ]]
+    TARFILE_MEMBERS: $[[ inputs.members ]]
+    TARFILE_CONTEXT: $[[ inputs.context ]]
+    TARFILE_IGNOREFILE: $[[ inputs.ignorefile ]]
+    TARFILE_TRANSFORM_PREFIX: $[[ inputs.transform ]]
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]
+
+
+# ============================================================================
+"$[[ inputs.job_name_prefix ]]tarfile publish$[[ inputs.job_name_suffix ]]":
+  extends: .tarfile-publish
+  stage: $[[ inputs.publish_stage ]]
+  variables:
+    TARFILE_NAME: $[[ inputs.name ]]
+    TARFILE_VERSION: $[[ inputs.version ]]
+    TARFILE_EXTENSION: $[[ inputs.extension ]]
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]
+  rules:
+    - if: '"$[[ inputs.publish_mode ]]" == "never"'
+      when: never
+    - if: '"$[[ inputs.publish_mode ]]" == "always"'
+    - !reference [.rules//if-protected-ref,  rules]
