@@ -27,7 +27,7 @@ include:
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@release/0.3
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.3
     inputs:
-      strict: $[[ inputs.semver_strict ]]
+      strict: $[[ inputs.strict ]]
       default_semver_prefix: $[[ inputs.default_semver_prefix ]]
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@release/0.3
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/merge-forward@release/0.3
