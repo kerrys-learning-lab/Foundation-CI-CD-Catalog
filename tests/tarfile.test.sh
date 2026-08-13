@@ -30,6 +30,11 @@ function test_cicd_tarfile_build_default() {
   export CI_PROJECT_NAME=foo
   export SEMANTIC_VERSION_SLUG=1.2.3
 
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
+
   /usr/local/bin/uut--tarfile--tarfile-build
 
   assert_file_exists "${PIPELINE_ARTIFACTS_DIR}/foo-1.2.3.tar.gz"
@@ -47,6 +52,11 @@ function test_cicd_tarfile_build_custom_name() {
   export CI_PROJECT_NAME=foo
   export SEMANTIC_VERSION_SLUG=1.2.3
   export TARFILE_NAME=blah
+
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
 
   /usr/local/bin/uut--tarfile--tarfile-build
 
@@ -66,6 +76,11 @@ function test_cicd_tarfile_build_custom_version() {
   export TEST_IDENTIFIER_TO_BE_EXPANDED=a.b.c
   export TARFILE_VERSION=TEST_IDENTIFIER_TO_BE_EXPANDED
 
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
+
   /usr/local/bin/uut--tarfile--tarfile-build
 
   assert_file_exists "${PIPELINE_ARTIFACTS_DIR}/foo-a.b.c.tar.gz"
@@ -83,6 +98,11 @@ function test_cicd_tarfile_build_content() {
   export CI_PROJECT_NAME=foo
   export SEMANTIC_VERSION_SLUG=1.2.3
   export TARFILE_MEMBERS=foo
+
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
 
   /usr/local/bin/uut--tarfile--tarfile-build
 
@@ -104,6 +124,11 @@ function test_cicd_tarfile_build_ignorefile() {
 
   echo "./bar" >> ${TARFILE_IGNOREFILE}
 
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
+
   /usr/local/bin/uut--tarfile--tarfile-build
 
   assert_file_exists "${PIPELINE_ARTIFACTS_DIR}/foo-1.2.3.tar.gz"
@@ -121,6 +146,11 @@ function test_cicd_tarfile_build_no_transform() {
   export CI_PROJECT_NAME=foo
   export SEMANTIC_VERSION_SLUG=1.2.3
   export TARFILE_TRANSFORM_PREFIX=none
+
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
 
   /usr/local/bin/uut--tarfile--tarfile-build
 
@@ -140,6 +170,11 @@ function test_cicd_tarfile_build_custom_transform() {
   export SEMANTIC_VERSION_SLUG=1.2.3
   export TARFILE_TRANSFORM_PREFIX=custom-transform
 
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
+
   /usr/local/bin/uut--tarfile--tarfile-build
 
   assert_file_exists "${PIPELINE_ARTIFACTS_DIR}/foo-1.2.3.tar.gz"
@@ -157,6 +192,11 @@ function test_cicd_tarfile_build_output_file_in_context() {
   export CI_PROJECT_NAME=foo
   export SEMANTIC_VERSION_SLUG=1.2.3
   export PIPELINE_ARTIFACTS_DIR=${TARFILE_CONTEXT}
+
+  . /usr/local/bin/uut--tarfile--tarfile-base
+  export TARFILE_NAME
+  export TARFILE_VERSION
+  export TARFILE_FULL_NAME
 
   /usr/local/bin/uut--tarfile--tarfile-build
 
