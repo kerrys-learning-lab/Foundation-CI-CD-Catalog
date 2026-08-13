@@ -28,9 +28,12 @@
     TARFILE_CONTEXT: .
     TARFILE_DEFAULT_EXCLUDES:
       .dockerignore
-      .git*
+      .git
+      .gitlab-ci-local
+      .pipeline-artifacts
       .vscode
       .pipeline-artifacts
+      .tarignore
     TARFILE_IGNOREFILE: .tarignore
     TARFILE_TRANSFORM_PREFIX: default # Use 'none' to not tranform the contents
                                       # to be relative to the given prefix
