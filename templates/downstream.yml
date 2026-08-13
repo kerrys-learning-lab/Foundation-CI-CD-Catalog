@@ -15,6 +15,16 @@
 #
 # NOTE: Only protected refs trigger down-stream Pipelines.  Unprotected refs
 #       have nothing published for a consumer to consume.
+#
+# NOTE: Unlike the other components here, this one deliberately does NOT set
+#       COMPONENT_NAME / COMPONENT_REFERENCE.  A trigger Job is a bridge --
+#       it never runs on a Runner, so there is no script phase and
+#       '.print-job-settings' never renders them.  Worse, they would not stay
+#       here:  'trigger:forward:yaml_variables' defaults to true, so both
+#       would be pushed into the down-stream Pipeline, where trigger-supplied
+#       variables outrank the down-stream's own Job-level 'variables:' -- and
+#       the consumer's settings table would report this component's
+#       provenance instead of its own.
 spec:
   inputs:
 
@@ -55,12 +65,6 @@ spec:
       default: ''
 
 
-  component:
-    - name
-    - version
-    - reference
-
-
 ---
 
 
@@ -79,8 +83,5 @@ include:
   parallel:
     matrix:
       - DOWNSTREAM: $[[ inputs.projects ]]
-  variables:
-    COMPONENT_NAME: $[[ component.name ]]
-    COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
     - !reference [.rules//if-protected-ref,  rules]
