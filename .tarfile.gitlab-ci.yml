@@ -47,6 +47,9 @@
       if [[ -n "${TARFILE_IGNOREFILE}" && -f ${TARFILE_IGNOREFILE} ]]; then
         TARCMD_CLI_ARGS+=(--exclude-from=${TARFILE_IGNOREFILE})
       fi
+      for excl in ${TARFILE_DEFAULT_EXCLUDES}; do
+        TARCMD_CLI_ARGS+=(--exclude=${excl})
+      done
 
       if [[ "${TARCMD_VERBOSE}" == "true" ]]; then
         TARCMD_CLI_ARGS+=(--verbose)
