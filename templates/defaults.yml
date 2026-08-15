@@ -17,6 +17,9 @@ stages:
               # Example actions: unit test, security scan, quality gate
   - publish   # Push the artifact in an accessible repository
               # Example actions:  'podman push', 'npm publish'
+  - verify    # Validate the published artifact against its down-stream
+              # consumers, before it is released
+              # Example actions:  trigger consumer Pipelines, contract test
   - release   # Notify down-stream consumers, update environment, etc.
 
 

@@ -1,0 +1,87 @@
+# ============================================================================
+# Triggers one or more down-stream consumer Projects, as a parallel matrix of
+# trigger Jobs (one Job per down-stream Project).
+#
+# The intent is to let a catalog Project gate itself on the consumers which
+# exercise it:  those consumers are the examples, the examples are the
+# contract tests, and a change which breaks a consumer should never reach a
+# release.  Hence the default stage is 'verify', which sits between 'publish'
+# (the artifact exists and is reachable) and 'release' (the artifact is
+# blessed).
+#
+# NOTE: 'strategy: depend' is deliberately NOT an input.  A fire-and-forget
+#       trigger reports success as soon as the down-stream Pipeline is
+#       created, which defeats the entire purpose of the gate.
+#
+# NOTE: Only protected refs trigger down-stream Pipelines.  Unprotected refs
+#       have nothing published for a consumer to consume.
+#
+# NOTE: Unlike the other components here, this one deliberately does NOT set
+#       COMPONENT_NAME / COMPONENT_REFERENCE.  A trigger Job is a bridge --
+#       it never runs on a Runner, so there is no script phase and
+#       '.print-job-settings' never renders them.  Worse, they would not stay
+#       here:  'trigger:forward:yaml_variables' defaults to true, so both
+#       would be pushed into the down-stream Pipeline, where trigger-supplied
+#       variables outrank the down-stream's own Job-level 'variables:' -- and
+#       the consumer's settings table would report this component's
+#       provenance instead of its own.
+spec:
+  inputs:
+
+    projects:
+      description:  |
+                    Down-stream Projects to trigger; one parallel Job each.
+                    Combined with 'project_prefix' to form the full path.
+      type: array
+      # NOTE: intentionally NO default -- an empty array emits an invalid
+      #       'parallel: matrix'.  A Project with no down-streams simply does
+      #       not include this component.
+
+    project_prefix:
+      description:  Common prefix for 'projects', so they may be listed as
+                    short names.  Keeps Job names readable in the graph.
+      type: string
+      default: ''
+
+    branch:
+      description:  Ref to build down-stream.  Defaults to this Pipeline's ref,
+                    which assumes down-streams mirror this Project's branches.
+      type: string
+      default: $CI_COMMIT_REF_NAME
+
+    stage:
+      description: Assigns the Pipeline stage for this Job
+      type: string
+      default: verify
+
+    job_name_prefix:
+      description: Optional prefix for this Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for this Job's name
+      type: string
+      default: ''
+
+
+---
+
+
+# ============================================================================
+include:
+  - local: templates/defaults.yml
+
+
+# ============================================================================
+"$[[ inputs.job_name_prefix ]]downstream$[[ inputs.job_name_suffix ]]":
+  stage: $[[ inputs.stage ]]
+  trigger:
+    project: $[[ inputs.project_prefix ]]$DOWNSTREAM
+    branch: $[[ inputs.branch ]]
+    strategy: depend
+  parallel:
+    matrix:
+      - DOWNSTREAM: $[[ inputs.projects ]]
+  rules:
+    - !reference [.rules//if-protected-ref,  rules]
