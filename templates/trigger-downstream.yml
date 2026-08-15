@@ -1,0 +1,64 @@
+# ============================================================================
+# Triggers one or more down-stream Projects, as a parallel matrix of
+# trigger Jobs (one Job per down-stream Project).
+#
+# NOTE: This component always uses 'strategy: depend'
+#
+# NOTE: Only protected refs trigger down-stream Pipelines.
+spec:
+  inputs:
+
+    projects:
+      description:  |
+                    Down-stream Projects to trigger; one parallel Job each.
+                    Combined with 'project_prefix' to form the full path.
+      type: array
+
+    project_prefix:
+      description:  Common prefix for 'projects', so they may be listed as
+                    short names.  Keeps Job names readable in the graph.
+      type: string
+      default: ''
+
+    branch:
+      description:  Ref to build down-stream.  Defaults to this Pipeline's ref,
+                    which assumes down-streams mirror this Project's branches.
+      type: string
+      default: $CI_COMMIT_REF_NAME
+
+    stage:
+      description: Assigns the Pipeline stage for this Job
+      type: string
+      default: verify
+
+    job_name_prefix:
+      description: Optional prefix for this Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for this Job's name
+      type: string
+      default: ''
+
+
+---
+
+
+# ============================================================================
+include:
+  - local: templates/defaults.yml
+
+
+# ============================================================================
+"$[[ inputs.job_name_prefix ]]trigger downstream$[[ inputs.job_name_suffix ]]":
+  stage: $[[ inputs.stage ]]
+  trigger:
+    project: $[[ inputs.project_prefix ]]/$DOWNSTREAM_PROJECT
+    branch: $[[ inputs.branch ]]
+    strategy: depend
+  parallel:
+    matrix:
+      - DOWNSTREAM_PROJECT: $[[ inputs.projects ]]
+  rules:
+    - !reference [.rules//if-protected-ref,  rules]
