@@ -1,9 +1,4 @@
 # ============================================================================
-include:
-  - local: .scratch.gitlab-ci.yml
-
-
-# ============================================================================
 # Resolves the Semantic Version for the current pipeline
 #
 #   Ref type           Example              SemVer produced
@@ -230,12 +225,12 @@ include:
 
       TABLE_ROWS=()
       for var in ${OUTPUT_VARS[@]}; do
-        echo "${var}=${!var}" >> ${JOB_ARTIFACTS_DIR}/semver.env
+        echo "${var}=${!var}" >> ${PIPELINE_ARTIFACTS_DIR}/semver.env
         TABLE_ROWS+=("🏷️ ${var};${!var}")
       done
     - !reference [.print-table, script]
   artifacts:
     paths:
-      - ${JOB_ARTIFACTS_DIR}
+      - ${PIPELINE_ARTIFACTS_DIR}
     reports:
-      dotenv: ${JOB_ARTIFACTS_DIR}/semver.env
+      dotenv: ${PIPELINE_ARTIFACTS_DIR}/semver.env

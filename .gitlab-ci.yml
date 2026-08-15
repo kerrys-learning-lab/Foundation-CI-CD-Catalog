@@ -6,6 +6,8 @@ include:
       unit_test_enabled: false
       structure_test_enabled: false
       job_name_suffix: " (glab)"
+      merge_forward: false
+      release: false
 
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.2
     inputs:
@@ -15,12 +17,13 @@ include:
       job_name_suffix: " (bashunit)"
       build_needs:
         - image build (glab)
+      merge_forward: false
+      release: false
 
   - local: templates/defaults.yml
   - local: .merge-forward.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
-  - local: .scratch.gitlab-ci.yml
   - local: .semver.gitlab-ci.yml
 
 
@@ -39,8 +42,12 @@ pipeline version:
   extends: .pipeline-version
   image: $ROCKYLINUX_BASE_IMAGE
   before_script:
-    - !reference [.scratch//rocky10-prerequisites,  before_script]
-    - !reference [.pipeline-version,                before_script]
+    - |
+      # --- pipeline version (before) ----------------------------------------
+      dnf install -y epel-release
+      dnf makecache
+      dnf --quiet install --assumeyes git ${ROCKYLINUX_PACKAGES}
+    - !reference [.pipeline-version,  before_script]
 
 
 # ============================================================================
@@ -49,31 +56,36 @@ pipeline version:
 
 
 # ============================================================================
-bashunit test:
+dogfood [bashunit test]:
   extends: .bashunit-test
   image: $CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID
 
 
 # ============================================================================
-pipeline version test:
+dogfood [pipeline version]:
   stage: test
   extends: .pipeline-version
   image: $CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID
+  before_script:
+    - !reference [.pipeline-version,  before_script]
+    - |
+      # --- dogfood [pipeline-version] (before) ------------------------------
+      mv ${PIPELINE_ARTIFACTS_DIR}/semver.env ${PIPELINE_ARTIFACTS_DIR}/semver.env.orig
   script:
     - !reference [.pipeline-version,  script]
     - |
-      # --- pipeline version test --------------------------------------------
-      diff --report-identical-files ${PIPELINE_ARTIFACTS_DIR}/pipeline-version/semver.env  \
-                                    ${JOB_ARTIFACTS_DIR}/semver.env
+      # --- dogfood [pipeline-version] ---------------------------------------
+      diff --report-identical-files ${PIPELINE_ARTIFACTS_DIR}/semver.env  \
+                                    ${PIPELINE_ARTIFACTS_DIR}/semver.env.orig
 
 
 # ============================================================================
-merge forward:
+dogfood [merge forward]:
   extends: .merge-forward
   image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
 
 
 # ============================================================================
-release:
+dogfood [release]:
   extends: .release
   image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID

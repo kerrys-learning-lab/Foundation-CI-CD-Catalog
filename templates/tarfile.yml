@@ -102,6 +102,7 @@ spec:
 
 ---
 include:
+  - local: templates/defaults.yml
   - local: .tarfile.gitlab-ci.yml
 
 

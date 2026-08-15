@@ -106,7 +106,7 @@
       mv ${TARFILE_TEMP_DEST} ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
   artifacts:
     paths:
-      - ${JOB_ARTIFACTS_DIR}
+      - ${PIPELINE_ARTIFACTS_DIR}
     expire_in: 1 week
 
 
@@ -133,6 +133,3 @@
                             --version   ${TARFILE_VERSION}  \
                             --filename  ${TARFILE_FULL_NAME}  \
                             ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
-  rules:
-    - if: $CI_COMMIT_REF_PROTECTED =~ /true/
-    - if: $GITLABCI_UPLOAD_TARFILE_PACKAGE_FORCE =~ /true/
