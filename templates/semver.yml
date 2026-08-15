@@ -1,6 +1,6 @@
 # ============================================================================
 # Calculates this pipeline's Semantic Version information and writes
-# the variables to ${JOB_ARTIFACTS_DIR}/semver.env
+# the variables to ${PIPELINE_ARTIFACTS_DIR}/semver.env
 #
 # Defines/declares the following outputs:
 #   - RELEASE_TRAIN:           The release train (first two digits of

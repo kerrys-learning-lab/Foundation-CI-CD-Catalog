@@ -4,29 +4,9 @@
     TARFILE_NAME: default               # CI_PROJECT_NAME
     TARFILE_VERSION: SEMANTIC_VERSION   # Will be expanded
     TARFILE_EXTENSION: tar.gz
-    TARFILE_DEFAULT_EXCLUDES:
-      .dockerignore
-      .git*
-      .vscode
-      .pipeline-artifacts
-
-
-# ============================================================================
-.tarfile-build:
-  stage: build
-  extends: .tarfile-base
-  variables:
-    TARFILE_MEMBERS: .
-    TARFILE_CONTEXT: .
-    TARFILE_IGNOREFILE: .tarignore
-    TARFILE_TRANSFORM_PREFIX: default # Use 'none' to not tranform the contents
-                                      # to be relative to the given prefix
-                                      # (by default, the prefix is based on the
-                                      # project name and semantic version slug)
-    TARFILE_VERBOSE: false
   before_script:
     - |
-      # --- tarfile build (before) -------------------------------------------
+      # --- tarfile base (before) --------------------------------------------
       if [[ -z "${TARFILE_NAME}" || "${TARFILE_NAME}" == default ]]; then
         TARFILE_NAME=${CI_PROJECT_NAME,,}
       fi
@@ -38,9 +18,38 @@
 
       TARFILE_FULL_NAME=${TARFILE_NAME}-${TARFILE_VERSION}.${TARFILE_EXTENSION}
 
+
+# ============================================================================
+.tarfile-build:
+  stage: build
+  extends: .tarfile-base
+  variables:
+    TARFILE_MEMBERS: .
+    TARFILE_CONTEXT: .
+    TARFILE_DEFAULT_EXCLUDES:
+      .dockerignore
+      .git
+      .gitlab-ci-local
+      .pipeline-artifacts
+      .vscode
+      .pipeline-artifacts
+      .tarignore
+    TARFILE_IGNOREFILE: .tarignore
+    TARFILE_TRANSFORM_PREFIX: default # Use 'none' to not tranform the contents
+                                      # to be relative to the given prefix
+                                      # (by default, the prefix is based on the
+                                      # project name and semantic version slug)
+    TARFILE_VERBOSE: false
+  before_script:
+    - !reference [.tarfile-base,  before_script]
+    - |
+      # --- tarfile build (before) -------------------------------------------
       if [[ -n "${TARFILE_IGNOREFILE}" && -f ${TARFILE_IGNOREFILE} ]]; then
         TARCMD_CLI_ARGS+=(--exclude-from=${TARFILE_IGNOREFILE})
       fi
+      for excl in ${TARFILE_DEFAULT_EXCLUDES}; do
+        TARCMD_CLI_ARGS+=(--exclude=${excl})
+      done
 
       if [[ "${TARCMD_VERBOSE}" == "true" ]]; then
         TARCMD_CLI_ARGS+=(--verbose)
@@ -97,7 +106,7 @@
       mv ${TARFILE_TEMP_DEST} ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
   artifacts:
     paths:
-      - ${JOB_ARTIFACTS_DIR}
+      - ${PIPELINE_ARTIFACTS_DIR}
     expire_in: 1 week
 
 
@@ -107,6 +116,7 @@
   extends: .tarfile-base
   before_script:
     - !reference [.tarfile-base,  before_script]
+    - !reference [default,        before_script]
     - |
       # --- tarfile publish (before) -----------------------------------------
       if [[ ! -f "${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}" ]]; then
@@ -123,6 +133,3 @@
                             --version   ${TARFILE_VERSION}  \
                             --filename  ${TARFILE_FULL_NAME}  \
                             ${PIPELINE_ARTIFACTS_DIR}/${TARFILE_FULL_NAME}
-  rules:
-    - if: $CI_COMMIT_REF_PROTECTED =~ /true/
-    - if: $GITLABCI_UPLOAD_TARFILE_PACKAGE_FORCE =~ /true/

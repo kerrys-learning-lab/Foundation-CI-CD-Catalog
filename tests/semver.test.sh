@@ -13,7 +13,7 @@ function set_up() {
   export CI_PIPELINE_SOURCE=push
   export DEFAULT_SEMVER_PREFIX=
   export TAGS_FOR_RELEASE_TRAIN=
-  export JOB_ARTIFACTS_DIR=$(bashunit::temp_dir)
+  export PIPELINE_ARTIFACTS_DIR=$(bashunit::temp_dir)
   export SEMVER_STRICT=true
 }
 
@@ -31,11 +31,11 @@ function test_protected_release_tag() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.3"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=3"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.3"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=3"
 }
 
 
@@ -88,7 +88,7 @@ function test_unprotected_nonconforming_tag_is_dev_build() {
 
   local actual=$(/usr/local/bin/uut--semver--pipeline-version)
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=0.0.0-nightly.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=0.0.0-nightly.42"
 }
 
 
@@ -118,11 +118,11 @@ function test_release_branch_with_no_tags() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.0-rc.42"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "RELEASE_TRAIN=1.2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION=1.2.0-rc.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env  "SEMANTIC_VERSION_PATCH=0"
 }
 
 
@@ -136,11 +136,11 @@ function test_release_branch_with_tags() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=1.2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=1.2.3-rc.42"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=1"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=2"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=3"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=1.2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=1.2.3-rc.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=1"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=2"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=3"
 }
 
 
@@ -171,11 +171,11 @@ function test_default_branch() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=main"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN=main"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
 }
 
 
@@ -189,10 +189,10 @@ function test_developer_branch() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MAJOR=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_MINOR=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION_PATCH=0"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-18-developer-doing-work.42"
 }
 
 
@@ -210,8 +210,8 @@ function test_mr_into_release_branch_is_release_candidate() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-42-some-fix.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-42-some-fix.42"
 }
 
 
@@ -225,8 +225,8 @@ function test_mr_from_release_branch() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-release-1.0.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "RELEASE_TRAIN="
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-release-1.0.42"
 }
 
 
@@ -240,7 +240,7 @@ function test_mr_from_main_branch() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-main.42"
 }
 
 
@@ -259,7 +259,7 @@ function test_custom_default_semver_prefix() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=9.9.9-feat-x.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=9.9.9-feat-x.42"
 }
 
 
@@ -274,5 +274,5 @@ function test_invalid_default_semver_prefix_falls_back() {
 
   /usr/local/bin/uut--semver--pipeline-version
 
-  assert_file_contains ${JOB_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-x.42"
+  assert_file_contains ${PIPELINE_ARTIFACTS_DIR}/semver.env "SEMANTIC_VERSION=0.0.0-feat-x.42"
 }
