@@ -13,6 +13,7 @@ ENV GLAB_URL=https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downl
 
 # ----------------------------------------------------------------------------
 RUN dnf --quiet install --assumeyes epel-release  &&  \
+    dnf config-manager --set-enabled crb  && \
     dnf --quiet install --assumeyes git  \
                                     ${GLAB_URL}  \
                                     hostname  \
@@ -41,6 +42,18 @@ RUN mkdir -p ${INSTALL_DIR}/bashunit-${BASHUNIT_VERSION}  && \
           ${BASHUNIT_URL}  && \
     chmod a=rx ${INSTALL_DIR}/bashunit-${BASHUNIT_VERSION}/bashunit  && \
     ln -s ${INSTALL_DIR}/bashunit-${BASHUNIT_VERSION}/bashunit  /usr/local/bin/bashunit
+
+
+
+# ============================================================================
+FROM base AS mkdocs
+
+
+RUN dnf install -y  mkdocs  \
+                    mkdocs-material  \
+                    python3-mkdocs-autorefs  \
+                    python3-mkdocs-literate-nav  \
+                    python3-mkdocs-material-extensions
 
 
 # ============================================================================
