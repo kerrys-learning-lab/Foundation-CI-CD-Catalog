@@ -1,9 +1,9 @@
 # ============================================================================
 variables:
   INSTALL_DIR: /usr/local/install
-  PIPELINE_ARTIFACTS_DIR: $CI_PROJECT_DIR/.pipeline-artifacts
+  PIPELINE_ARTIFACTS_DIR: .pipeline-artifacts
   RELEASE_NOTES_DIR: $PIPELINE_ARTIFACTS_DIR/release-notes
-  JOB_ARTIFACTS_DIR: $CI_PROJECT_DIR/.job-artifacts/$CI_JOB_NAME_SLUG
+  JOB_ARTIFACTS_DIR: .job-artifacts/$CI_JOB_NAME_SLUG
   BASHUNIT_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/bashunit:release-0.3
   GLAB_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:release-0.3
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi

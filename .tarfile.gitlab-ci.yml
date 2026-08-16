@@ -17,6 +17,7 @@
       fi
 
       TARFILE_FULL_NAME=${TARFILE_NAME}-${TARFILE_VERSION}.${TARFILE_EXTENSION}
+      TARFILE_DOWNLOAD_URL=https://${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${TARFILE_NAME}/${TARFILE_VERSION}/${TARFILE_FULL_NAME}
 
 
 # ============================================================================
