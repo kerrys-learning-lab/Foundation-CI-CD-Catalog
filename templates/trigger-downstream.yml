@@ -61,4 +61,5 @@ include:
     matrix:
       - DOWNSTREAM_PROJECT: $[[ inputs.projects ]]
   rules:
-    - !reference [.rules//if-protected-ref,  rules]
+    - !reference [.rules//never-if-gitlab-ci-local, rules]
+    - !reference [.rules//if-release-branch,        rules]

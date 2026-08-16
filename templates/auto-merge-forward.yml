@@ -27,4 +27,5 @@ auto merge forward:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
+    - !reference [.rules//never-if-gitlab-ci-local, rules]
     - !reference [.rules//if-release-branch,        rules]
