@@ -61,4 +61,4 @@ include:
     matrix:
       - DOWNSTREAM_PROJECT: $[[ inputs.projects ]]
   rules:
-    - !reference [.rules//if-protected-ref,  rules]
+    - !reference [.rules//if-release-branch,  rules]
