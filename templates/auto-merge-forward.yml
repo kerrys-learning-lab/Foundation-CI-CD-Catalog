@@ -1,0 +1,30 @@
+# ============================================================================
+# Merges a release branch (e.g., 'release/1.0') to the default branch
+# (e.g., 'main')
+spec:
+
+
+  component:
+    - name
+    - version
+    - reference
+
+
+---
+
+
+# ----------------------------------------------------------------------------
+include:
+  - local: templates/defaults.yml
+  - local: .auto-merge-forward.gitlab-ci.yml
+
+
+# ----------------------------------------------------------------------------
+auto merge forward:
+  extends: .auto-merge-forward
+  stage: release
+  variables:
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]
+  rules:
+    - !reference [.rules//if-release-branch,        rules]

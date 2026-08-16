@@ -1,6 +1,6 @@
 # ============================================================================
-# Merges a release branch (e.g., 'release/1.0') to the default branch
-# (e.g., 'main')
+# Tags a release branch (e.g., 'release/1.0') using the next calculated patch
+# number
 spec:
 
 
@@ -16,15 +16,15 @@ spec:
 # ----------------------------------------------------------------------------
 include:
   - local: templates/defaults.yml
-  - local: .merge-forward.gitlab-ci.yml
+  - local: .auto-tag.gitlab-ci.yml
 
 
 # ----------------------------------------------------------------------------
-merge forward:
-  extends: .merge-forward
+auto tag:
+  extends: .auto-tag
   stage: release
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
-    - !reference [.rules//if-release-branch,        rules]
+    - !reference [.rules//if-release-branch,  rules]

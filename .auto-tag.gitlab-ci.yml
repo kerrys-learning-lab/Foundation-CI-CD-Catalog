@@ -1,0 +1,37 @@
+# ============================================================================
+.auto-tag:
+  stage: release
+  extends: .glab-base
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - |
+      # --- auto-tag (before) ------------------------------------------------
+      if [[ -z "${RELEASE_TRAIN}" ]]; then
+        echo "❌  Can only auto-tag from a release branch!"
+        echo "    Expected: 'release/X.Y'"
+        echo "    Actual: ${CI_COMMIT_BRANCH}"
+        exit 10
+      elif [[ -z "${SEMANTIC_VERSION_PATCH}" ]]; then
+        echo "❌  SEMANTIC_VERSION_PATCH is not set!"
+        echo "    Can't infer next tag for release train ${RELEASE_TRAIN}."
+        exit 10
+      fi
+
+      RELEASE_TRAIN_NEXT_TAG=v${RELEASE_TRAIN}.${SEMANTIC_VERSION_PATCH}
+      if git ls-remote --tags origin | grep -q ${RELEASE_TRAIN_NEXT_TAG}; then
+        echo "❌  Tag ${RELEASE_TRAIN_NEXT_TAG} already exists!"
+        exit 10
+      fi
+    - !reference [.glab-base,   before_script]
+  script:
+    - !reference [.glab-base,   script]
+    - |
+      # --- auto-tag ---------------------------------------------------------
+      git tag --annotate  \
+              --message "Auto-tag created by Pipeline ${CI_PIPELINE_IID}"  \
+              ${RELEASE_TRAIN_NEXT_TAG}
+      git push origin ${RELEASE_TRAIN_NEXT_TAG}
+  rules:
+    - !reference [.rules//never-if-gitlab-ci-local, rules]
+    - !reference [.rules//if-release-branch,        rules]

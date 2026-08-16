@@ -1,5 +1,5 @@
 # ============================================================================
-.merge-forward:
+.auto-merge-forward:
   stage: release
   image: $GLAB_JOB_IMAGE
   variables:
