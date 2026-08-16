@@ -11,6 +11,17 @@ include:
 
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.2
     inputs:
+      target: mkdocs
+      unit_test_enabled: false
+      structure_test_enabled: false
+      job_name_suffix: " (mkdocs)"
+      build_needs:
+        - image build (glab)
+      merge_forward: false
+      release: false
+
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.2
+    inputs:
       target: bashunit
       unit_test_enabled: false
       structure_test_enabled: false
