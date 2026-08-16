@@ -40,6 +40,27 @@ default:
 
 
 # ============================================================================
+.glab-base:
+  image: $GLAB_JOB_IMAGE
+  variables:
+    GLAB_CHECK_UPDATE: false
+    GLAB_SEND_TELEMETRY: false
+    GLAB_SHOW_WHATS_NEW: false
+  before_script:
+    - !reference [default,  before_script]
+    - |
+      # --- glab-base (before) -----------------------------------------------
+      echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
+                                                --stdin
+  script:
+    - |
+      # --- glab-base --------------------------------------------------------
+      git config --global user.email  "${CICD_BOT_EMAIL}"
+      git config --global user.name   "${CICD_BOT_NAME}"
+      git remote set-url origin "https://PRIVATE-TOKEN:${CICD_BOT_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+
+
+# ============================================================================
 # Enforce MRs as the primary mechanism for Pipeline execution, since MRs
 # carry 'intent'
 #

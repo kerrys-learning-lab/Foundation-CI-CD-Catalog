@@ -32,7 +32,8 @@ include:
       release: false
 
   - local: templates/defaults.yml
-  - local: .merge-forward.gitlab-ci.yml
+  - local: .auto-merge-forward.gitlab-ci.yml
+  - local: .auto-tag.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
   - local: .semver.gitlab-ci.yml
@@ -92,7 +93,13 @@ dogfood [pipeline version]:
 
 # ============================================================================
 dogfood [merge forward]:
-  extends: .merge-forward
+  extends: .auto-merge-forward
+  image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
+
+
+# ============================================================================
+dogfood [auto-tag]:
+  extends: .auto-tag
   image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
 
 
