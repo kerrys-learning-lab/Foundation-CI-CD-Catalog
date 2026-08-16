@@ -24,10 +24,10 @@ include:
 
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@main
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@main
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
     inputs:
       strict: $[[ inputs.strict ]]
       default_semver_prefix: $[[ inputs.default_semver_prefix ]]
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@main
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-merge-forward@main
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-merge-forward@release/0.4
