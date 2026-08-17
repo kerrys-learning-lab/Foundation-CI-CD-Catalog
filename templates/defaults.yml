@@ -65,17 +65,19 @@ default:
 # ============================================================================
 .glab-base:
   image: $GLAB_JOB_IMAGE
+  extends: .default-base
   variables:
     GLAB_CHECK_UPDATE: false
     GLAB_SEND_TELEMETRY: false
     GLAB_SHOW_WHATS_NEW: false
   before_script:
-    - !reference [default,  before_script]
+    - !reference [.default-base,  before_script]
     - |
       # --- glab-base (before) -----------------------------------------------
       echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
                                                 --stdin
   script:
+    - !reference [.default-base,  script]
     - |
       # --- glab-base --------------------------------------------------------
       git config --global user.email  "${CICD_BOT_EMAIL}"
