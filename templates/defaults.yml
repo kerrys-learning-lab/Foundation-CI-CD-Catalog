@@ -28,7 +28,6 @@ stages:
 default:
   interruptible: true
   before_script:
-    - !reference [.print-job-settings,  script]
     - |
       # --- default (before) -------------------------------------------------
       set -e
@@ -38,6 +37,22 @@ default:
       if [[ "${CICD_VERY_VERBOSE}" == "true" ]]; then
         set -x
       fi
+  script:
+    - |
+      # --- default ----------------------------------------------------------
+      TABLE_ROWS=()
+
+      if [[ -n "${COMPONENT_NAME}" && -n "${COMPONENT_REFERENCE}" ]]; then
+        TABLE_ROWS+=("--------------------;--------------------")
+        TABLE_ROWS+=("🏷️ Component name;${COMPONENT_NAME}")
+        TABLE_ROWS+=("❄️ Component version;${COMPONENT_REFERENCE}")
+        TABLE_ROWS+=("--------------------;--------------------")
+      fi
+
+      if [[ -n "${JOB_SETTINGS}" ]]; then
+        TABLE_ROWS+=("${JOB_SETTINGS[@]}")
+      fi
+    - !reference [.print-table, script]
 
 
 # ============================================================================
@@ -154,27 +169,6 @@ default:
   rules:
     - if: $GITLAB_CI != "true"
       when: never
-
-
-# ============================================================================
-.print-job-settings:
-  script:
-    - |
-      #
-      # --- print-job-settings -----------------------------------------------
-      TABLE_ROWS=()
-
-      if [[ -n "${COMPONENT_NAME}" && -n "${COMPONENT_REFERENCE}" ]]; then
-        TABLE_ROWS+=("--------------------;--------------------")
-        TABLE_ROWS+=("🏷️ Component name;${COMPONENT_NAME}")
-        TABLE_ROWS+=("❄️ Component version;${COMPONENT_REFERENCE}")
-        TABLE_ROWS+=("--------------------;--------------------")
-      fi
-
-      if [[ -n "${JOB_SETTINGS}" ]]; then
-        TABLE_ROWS+=("${JOB_SETTINGS[@]}")
-      fi
-    - !reference [.print-table, script]
 
 
 # ============================================================================
