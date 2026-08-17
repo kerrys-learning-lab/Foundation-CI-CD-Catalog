@@ -37,9 +37,16 @@ default:
       if [[ "${CICD_VERY_VERBOSE}" == "true" ]]; then
         set -x
       fi
+
+
+# ============================================================================
+.default-base:
+  interruptible: true
+  before_script:
+    - !reference [default,  before_script]
   script:
     - |
-      # --- default ----------------------------------------------------------
+      # --- default-base -----------------------------------------------------
       TABLE_ROWS=()
 
       if [[ -n "${COMPONENT_NAME}" && -n "${COMPONENT_REFERENCE}" ]]; then
