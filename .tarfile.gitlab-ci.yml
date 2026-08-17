@@ -31,6 +31,8 @@
       .dockerignore
       .git
       .gitlab-ci-local
+      .gitlab-ci-reports
+      .job-artifacts
       .pipeline-artifacts
       .vscode
       .pipeline-artifacts
