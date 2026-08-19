@@ -34,6 +34,20 @@ default:
       mkdir -p ${JOB_ARTIFACTS_DIR}
       mkdir -p ${PIPELINE_ARTIFACTS_DIR}
 
+      BUILDER_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+      BUILDER_ARCH=$(uname -m)
+
+      case "${BUILDER_OS}" in
+        linux*)               BUILDER_OS="linux"    ;;
+        darwin*)              BUILDER_OS="darwin"   ;;
+        msys*|cygwin*|mingw*) BUILDER_OS="windows"  ;;
+      esac
+
+      case "${BUILDER_ARCH}" in
+        x86_64)   BUILDER_ARCH=amd64  ;;
+        aarch64)  BUILDER_ARCH=arm64  ;;
+      esac
+
       if [[ "${CICD_VERY_VERBOSE}" == "true" ]]; then
         set -x
       fi
