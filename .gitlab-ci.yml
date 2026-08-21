@@ -35,6 +35,7 @@ include:
   - local: .auto-merge-forward.gitlab-ci.yml
   - local: .auto-tag.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
+  - local: .ref-consistency.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
   - local: .semver.gitlab-ci.yml
 
@@ -44,6 +45,14 @@ workflow:
   name: CI/CD Tools Catalog Builder
   rules:
     - !reference [.rules//merge-request-as-primary-workflow, rules]
+
+
+# ============================================================================
+# Checks this repository's version-bearing references against the intent
+# declared in .release-manifest.yml, using this repository's own copy of the
+# check script (scripts/check-refs)
+ref consistency:
+  extends: .ref-consistency
 
 
 # ============================================================================
@@ -95,6 +104,18 @@ dogfood [pipeline version]:
       # --- dogfood [pipeline-version] ---------------------------------------
       diff --report-identical-files ${PIPELINE_ARTIFACTS_DIR}/semver.env  \
                                     ${PIPELINE_ARTIFACTS_DIR}/semver.env.orig
+
+
+# ============================================================================
+# Proves that consuming projects -- which have no scripts/check-refs of their
+# own -- get a working checker from the image.  REF_CONSISTENCY_SCRIPT is
+# blanked so that the copy baked into the image is the one exercised.
+dogfood [ref consistency]:
+  stage: test
+  extends: .ref-consistency
+  image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
+  variables:
+    REF_CONSISTENCY_SCRIPT: ''
 
 
 # ============================================================================
