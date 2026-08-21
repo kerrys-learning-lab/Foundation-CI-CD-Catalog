@@ -41,6 +41,11 @@ spec:
       type: string
       default: ''
 
+  component:
+    - name
+    - reference
+    - version
+
 
 ---
 
