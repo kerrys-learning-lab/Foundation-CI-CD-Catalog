@@ -15,6 +15,26 @@ spec:
       type: string
       default: v0.0.0
 
+    # ------------------------------------------------------------------------
+    auto_merge_forward:
+      description:  If true, the Pipeline will include a 'auto merge forward' Job.
+      type: boolean
+      default: true
+
+    release:
+      description:  If true, the Pipeline will include a 'release' Job.
+      type: boolean
+      default: true
+
+    auto_tag:
+      description:  If true, the Pipeline will include an 'auto tag' Job.
+      type: boolean
+      default: false
+
+  component:
+    - name
+    - reference
+    - version
 
 ---
 
@@ -24,10 +44,25 @@ include:
 
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@release/0.4
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@$[[ component.reference ]]
+
+  # --------------------------------------------------------------------------
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@$[[ component.reference ]]
     inputs:
       strict: $[[ inputs.strict ]]
       default_semver_prefix: $[[ inputs.default_semver_prefix ]]
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@release/0.4
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-merge-forward@release/0.4
+
+  # --------------------------------------------------------------------------
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@$[[ component.reference ]]
+    rules:
+      - if: '"$[[ inputs.release ]]" == "true"'
+
+  # --------------------------------------------------------------------------
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-merge-forward@$[[ component.reference ]]
+    rules:
+      - if: '"$[[ inputs.auto_merge_forward ]]" == "true"'
+
+  # --------------------------------------------------------------------------
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-tag@$[[ component.reference ]]
+    rules:
+      - if: '"$[[ inputs.auto_tag ]]" == "true"'

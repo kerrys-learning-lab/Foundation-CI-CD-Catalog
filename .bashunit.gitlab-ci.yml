@@ -1,18 +1,20 @@
 # ============================================================================
 .bashunit-test:
-  stage: test
   image: $BASHUNIT_JOB_IMAGE
+  extends: .default-base
+  stage: test
   variables:
     BASHUNIT_TESTS_PATH: ./tests/
     SOURCE_GITLAB_FILES: ''
   before_script:
+    - !reference [.default-base,  before_script]
     - |
       # --- bash unit-test (before) ------------------------------------------
       JOB_SETTINGS+=("📂 Tests path;${BASHUNIT_TESTS_PATH}")
       JOB_SETTINGS+=("📄 Results path;${JOB_ARTIFACTS_DIR}/test-results.xml")
     - !reference [.bashunit//extract-yaml-scripts,  before_script]
-    - !reference [default,                          before_script]
   script:
+    - !reference [.default-base,  script]
     - |
       # --- bash unit-test ---------------------------------------------------
       bashunit  test  --run-all  \

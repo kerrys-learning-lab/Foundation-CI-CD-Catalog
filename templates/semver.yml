@@ -39,7 +39,7 @@ spec:
 
 # ============================================================================
 include:
-  - local: templates/defaults.yml
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@$[[ component.reference ]]
   - local: .semver.gitlab-ci.yml
 
 
