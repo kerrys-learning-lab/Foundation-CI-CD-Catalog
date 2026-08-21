@@ -20,7 +20,7 @@ function set_up() {
   cat > ${FIXTURE}/.release-manifest.yml <<'EOF'
 version: 1
 components:
-  devsecops/cicd-catalog/foundation: release/0.4
+  devsecops/cicd-catalog/foundation: $[[ component.reference ]]
   devsecops/cicd-catalog/image: release/0.2
 images:
   devsecops/cicd-catalog/foundation: release-0.4
@@ -55,13 +55,14 @@ function test_matching_component_refs_pass() {
 
   write_fixture_file .gitlab-ci.yml <<'EOF'
 include:
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@$[[ component.reference ]]
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.2
 EOF
 
   run_check
 
   assert_equals "${EXIT_OK}" "${EXIT_CODE}"
+  assert_contains "Internally referenced components need not be declared" "${OUTPUT}"
 }
 
 
@@ -72,19 +73,16 @@ function test_diverging_component_ref_is_reported_with_file_and_line() {
 
   write_fixture_file .gitlab-ci.yml <<'EOF'
 include:
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@release/0.3
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.3
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@$[[ component.reference ]]
 EOF
 
   run_check
 
   assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains ".gitlab-ci.yml:3:" "${OUTPUT}"
-  assert_contains "@release/0.3" "${OUTPUT}"
-  assert_contains "@release/0.4" "${OUTPUT}"
-
-  # The matching ref on line 2 must not be reported
-  assert_not_contains ".gitlab-ci.yml:2:" "${OUTPUT}"
+  assert_contains ".gitlab-ci.yml | 2" "${OUTPUT}"
+  assert_contains ".gitlab-ci.yml | 3" "${OUTPUT}"
+  assert_contains "Expected: \$[[ component.reference ]] / Actual: release/0.3" "${OUTPUT}"
 }
 
 
@@ -101,7 +99,7 @@ EOF
   run_check
 
   assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains "not governed by the manifest" "${OUTPUT}"
+  assert_contains "Not declared in manifest" "${OUTPUT}"
 }
 
 
@@ -118,7 +116,7 @@ EOF
   run_check
 
   assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains "names no version" "${OUTPUT}"
+  assert_contains "Invalid reference" "${OUTPUT}"
 }
 
 
@@ -176,8 +174,7 @@ EOF
   run_check
 
   assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains "defaults.yml:2:" "${OUTPUT}"
-  assert_contains ":release-0.4" "${OUTPUT}"
+  assert_contains "Expected: release-0.4 / Actual: release-0.3" "${OUTPUT}"
 }
 
 
@@ -248,7 +245,7 @@ EOF
   run_check
 
   assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains "not governed by the manifest" "${OUTPUT}"
+  assert_contains "some/other/group/builder:release-0.3 | Not declared in manifest" "${OUTPUT}"
 }
 
 
@@ -350,13 +347,13 @@ function test_declaration_which_governs_nothing_is_warned_about() {
 
   write_fixture_file .gitlab-ci.yml <<'EOF'
 include:
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@$[[ component.reference ]]
 EOF
 
   run_check
 
   assert_equals "${EXIT_OK}" "${EXIT_CODE}"
-  assert_contains "devsecops/cicd-catalog/image is declared but" "${OUTPUT}"
+  assert_contains "Declared but never referenced" "${OUTPUT}"
 }
 
 
@@ -386,23 +383,6 @@ EOF
 # ============================================================================
 # Command line
 # ============================================================================
-
-# ----------------------------------------------------------------------------
-# @tag refs
-function test_quiet_prints_divergences_only() {
-  bashunit::set_test_title "check-refs (--quiet)"
-
-  write_fixture_file .gitlab-ci.yml <<'EOF'
-include:
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.1
-EOF
-
-  run_check --quiet
-
-  assert_equals "${EXIT_DIVERGED}" "${EXIT_CODE}"
-  assert_contains ".gitlab-ci.yml:2:" "${OUTPUT}"
-  assert_not_contains "Checking references" "${OUTPUT}"
-}
 
 
 # ----------------------------------------------------------------------------

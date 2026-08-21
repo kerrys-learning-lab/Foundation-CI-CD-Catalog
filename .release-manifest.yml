@@ -38,13 +38,13 @@ version: 1
 #
 # A `component:` include of an *undeclared* project is an error: every
 # component ref is version-bearing, so none may go ungoverned.
+#
+# NOTE: It's not necessary to list the *current* project as a component, as
+#       internally referenced components are always enforced to use
+#       $[[ component.reference ]]
 components:
-  # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/foundation
-  devsecops/cicd-catalog/foundation: release/0.4
-
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/image
-  devsecops/cicd-catalog/image: release/0.2
-
+  devsecops/cicd-catalog/image: release/0.3
 
 # ----------------------------------------------------------------------------
 # Container image tags, keyed by GitLab project path.
@@ -58,7 +58,7 @@ components:
 # tags such as `$CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID` carry no
 # release version and are ignored.
 images:
-  devsecops/cicd-catalog/foundation: release-0.4
+  devsecops/cicd-catalog/foundation: main
 
 
 # ----------------------------------------------------------------------------

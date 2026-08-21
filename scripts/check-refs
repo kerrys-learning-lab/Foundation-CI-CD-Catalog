@@ -25,16 +25,17 @@
 #
 # Usage:  check-refs [OPTIONS]
 #
-#   --manifest FILE     Manifest to read
-#                       (default: <repo-root>/.release-manifest.yml)
-#   --repo-root DIR     Repository to scan
-#                       (default: git top-level, else '.')
-#   --verify-upstream   Additionally assert that every ref named in the
-#                       manifest actually exists upstream.  Requires `glab`,
-#                       `jq` and an authenticated GitLab host.
-#   --verbose           Also list every governed reference which matched
-#   --quiet             Print divergences only; suppress the summary
-#   -h, --help          Print this help and exit
+#   --manifest FILE         Manifest to read
+#                           (default: <repo-root>/.release-manifest.yml)
+#   --repo-root DIR         Repository to scan
+#                           (default: git top-level, else '.')
+#   --verify-upstream       Additionally assert that every ref named in the
+#                           manifest actually exists upstream.  Requires `glab`,
+#                           `jq` and an authenticated GitLab host.
+#   --ci-project-path PATH  Set's this project's CI_PROJECT_PATH.  Required if
+#                           CI_PROJECT_PATH environment variable is not set
+#   --verbose               Also list every governed reference which matched
+#   -h, --help              Print this help and exit
 #
 #
 # Exit codes:
@@ -73,7 +74,7 @@ readonly IGNORE_LINE_REGEX='check-refs:[[:space:]]*ignore'
 #                    (discarded)
 #
 # Capture group 2 is everything from the host token onwards.
-readonly COMPONENT_REGEX='(^|[[:space:]]|-)component:[[:space:]]+([^[:space:]"'"'"']+)'
+readonly COMPONENT_REGEX='(^|[[:space:]]|-)component:[[:space:]]+(.*)'
 
 # Matches a registry image reference such as
 #
@@ -96,13 +97,20 @@ MANIFEST=
 REPO_ROOT=
 VERIFY_UPSTREAM=false
 VERBOSE=false
-QUIET=false
 
 declare -A COMPONENT_REFS=()   # project path -> declared component ref
 declare -A IMAGE_TAGS=()       # project path -> declared image tag
 declare -A COMPONENTS_SEEN=()  # project path -> count of refs found
 declare -A IMAGES_SEEN=()      # project path -> space-separated registry paths
 declare -a IGNORE_GLOBS=()
+
+REPORTS=()
+NOTES=()
+SUMMARIES=()
+
+# Internally referenced components should always use the GitLab component
+# context (https://docs.gitlab.com/ci/components/#use-component-context-in-components)
+COMPONENT_REFS[${CI_PROJECT_PATH}]='$[[ component.reference ]]'
 
 DIVERGENCE_COUNT=0
 GOVERNED_COUNT=0
@@ -123,25 +131,6 @@ function die() {
 
 
 # ----------------------------------------------------------------------------
-# Reports one divergence:  <file>:<line>: <message>
-function report() {
-  local file=$1
-  local lineno=$2
-  shift 2
-
-  echo "${file}:${lineno}: $*"
-  DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
-}
-
-
-# ----------------------------------------------------------------------------
-function note() {
-  [[ ${QUIET} == true ]] && return 0
-  echo "$*"
-}
-
-
-# ----------------------------------------------------------------------------
 function parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -155,16 +144,16 @@ function parse_args() {
         REPO_ROOT=$2
         shift 2
         ;;
+      --ci-project-path)
+        export CI_PROJECT_PATH=$2
+        shift 2
+        ;;
       --verify-upstream)
         VERIFY_UPSTREAM=true
         shift
         ;;
       --verbose)
         VERBOSE=true
-        shift
-        ;;
-      --quiet)
-        QUIET=true
         shift
         ;;
       -h|--help)
@@ -176,6 +165,10 @@ function parse_args() {
         ;;
     esac
   done
+
+  if [[ -z "${CI_PROJECT_PATH}" ]]; then
+    die "One of '--ci-project-path' or CI_PROJECT_PATH must be provided."
+  fi
 }
 
 
@@ -213,7 +206,13 @@ function read_manifest() {
   local value
 
   while read -r key value; do
-    [[ -n "${key}" ]] && COMPONENT_REFS[${key}]=${value}
+    if [[ -n "${key}" ]]; then
+      if [[ "${key}" == "${CI_PROJECT_PATH}" ]]; then
+        SUMMARIES+=("⚠️;Manifest check;Internally referenced components need not be declared in .release-manifest.yml")
+      else
+        COMPONENT_REFS[${key}]=${value}
+      fi
+    fi
   done < <(yq -r '(.components // {}) | to_entries | .[] | .key + " " + .value' "${MANIFEST}")
 
   while read -r key value; do
@@ -286,8 +285,8 @@ function check_component_ref() {
   local path_and_ref=${value#*/}
 
   if [[ "${path_and_ref}" != *@* ]]; then
-    report "${file}" "${lineno}"  \
-           "component '${path_and_ref}' names no version (expected '<project>/<component>@<ref>')"
+    REPORTS+=("❌;Component;${file};${lineno};${path_and_ref};Invalid reference (expected '<project>/<component>@<ref>")
+    DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
     return
   fi
 
@@ -298,8 +297,8 @@ function check_component_ref() {
   project=$(longest_declared_prefix COMPONENT_REFS "${full_path}")
 
   if [[ -z "${project}" ]]; then
-    report "${file}" "${lineno}"  \
-           "component '${full_path}' is not governed by the manifest (declare '${full_path%/*}' under 'components:')"
+    REPORTS+=("❌;Component;${file};${lineno};${full_path};Not declared in manifest")
+    DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
     return
   fi
 
@@ -307,10 +306,10 @@ function check_component_ref() {
   GOVERNED_COUNT=$((GOVERNED_COUNT + 1))
 
   if [[ "${ref}" != "${COMPONENT_REFS[${project}]}" ]]; then
-    report "${file}" "${lineno}"  \
-           "component '${full_path}' is '@${ref}' but the manifest declares '@${COMPONENT_REFS[${project}]}'"
-  elif [[ ${VERBOSE} == true ]]; then
-    note "${file}:${lineno}: ✅  ${full_path}@${ref}"
+    REPORTS+=("❌;Component;${file};${lineno};${full_path};Expected: ${COMPONENT_REFS[${project}]} / Actual: ${ref}")
+    DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
+  else
+    REPORTS+=("✅;Component;${file};${lineno};${full_path};")
   fi
 }
 
@@ -330,8 +329,8 @@ function check_image_ref() {
     # version-bearing, so an undeclared project is only worth reporting when
     # the tag looks like a release
     if [[ "${tag}" =~ ${RELEASE_TAG_REGEX} ]]; then
-      report "${file}" "${lineno}"  \
-             "image '${image_path}:${tag}' is not governed by the manifest (declare '${image_path%/*}' under 'images:')"
+      REPORTS+=("❌;Image;${file};${lineno};${image_path}:${tag};Not declared in manifest")
+      DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
     fi
     return
   fi
@@ -340,10 +339,10 @@ function check_image_ref() {
   GOVERNED_COUNT=$((GOVERNED_COUNT + 1))
 
   if [[ "${tag}" != "${IMAGE_TAGS[${project}]}" ]]; then
-    report "${file}" "${lineno}"  \
-           "image '${image_path}' is ':${tag}' but the manifest declares ':${IMAGE_TAGS[${project}]}'"
+    REPORTS+=("❌;Image;${file};${lineno};${image_path};Expected: ${IMAGE_TAGS[${project}]} / Actual: ${tag}")
+    DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
   elif [[ ${VERBOSE} == true ]]; then
-    note "${file}:${lineno}: ✅  ${image_path}:${tag}"
+    REPORTS+=("✅;Image;${file};${lineno};${image_path}:${tag};")
   fi
 }
 
@@ -401,13 +400,13 @@ function warn_unreferenced_declarations() {
 
   for project in "${!COMPONENT_REFS[@]}"; do
     if [[ -z "${COMPONENTS_SEEN[${project}]:-}" ]]; then
-      note "⚠️  components: ${project} is declared but no 'component:' include references it"
+      REPORTS+=("⚠️;Component;-;-;${project};Declared but never referenced")
     fi
   done
 
   for project in "${!IMAGE_TAGS[@]}"; do
     if [[ -z "${IMAGES_SEEN[${project}]:-}" ]]; then
-      note "⚠️  images: ${project} is declared but no image reference uses it"
+      REPORTS+=("⚠️;Image;-;-;${project};Declared but never referenced")
     fi
   done
 }
@@ -479,12 +478,19 @@ function verify_upstream() {
     ref=${COMPONENT_REFS[${project}]}
     encoded=$(urlencode_path "${project}")
 
-    if gitlab_api "projects/${encoded}/repository/branches/$(urlencode_path "${ref}")" >/dev/null; then
-      note "✅  components: ${project}@${ref} exists upstream (branch)"
+    if [[ "${ref}" == "\$[["*"]]" ]]; then
+      if [[ "${project}" == "${CI_PROJECT_PATH}" ]]; then
+        SUMMARIES+=("✅;GitLab Component context;Internal components are referenced using GitLab component context")
+      else
+        SUMMARIES+=("❌;GitLab Component context;Cannot use GitLab component context for an external Project (${project}@${ref})")
+        missing=$((missing + 1))
+      fi
+    elif gitlab_api "projects/${encoded}/repository/branches/$(urlencode_path "${ref}")" >/dev/null; then
+      SUMMARIES+=("✅;Component upstream check;${project}@${ref} exists upstream (branch)")
     elif gitlab_api "projects/${encoded}/repository/tags/$(urlencode_path "${ref}")" >/dev/null; then
-      note "✅  components: ${project}@${ref} exists upstream (tag)"
+      SUMMARIES+=("✅;Component upstream check;${project}@${ref} exists upstream (tag)")
     else
-      echo "❌  components: ${project}@${ref} does not exist upstream" >&2
+      SUMMARIES+=("❌;Component upstream check;${project}@${ref} does not exist upstream")
       missing=$((missing + 1))
     fi
   done
@@ -499,15 +505,15 @@ function verify_upstream() {
                       | jq -r --arg path "${image_path}" '.[] | select(.path == $path) | .id')
 
       if [[ -z "${repository_id}" ]]; then
-        echo "❌  images: ${project} has no registry repository '${image_path}'" >&2
+        SUMMARIES+=("❌;Image upstream check;${project} has no registry repository: ${image_path}")
         missing=$((missing + 1))
         continue
       fi
 
       if gitlab_api "projects/${encoded}/registry/repositories/${repository_id}/tags/${tag}" >/dev/null; then
-        note "✅  images: ${image_path}:${tag} exists upstream"
+        SUMMARIES+=("✅;Image upstream check;${image_path}:${tag} exists upstream")
       else
-        echo "❌  images: ${image_path}:${tag} does not exist upstream" >&2
+        SUMMARIES+=("❌;Image upstream check;${image_path}:${tag} does not exist upstream")
         missing=$((missing + 1))
       fi
     done
@@ -523,30 +529,47 @@ function main() {
   resolve_paths
   read_manifest
 
-  note "🔍  Checking references in ${REPO_ROOT} against ${MANIFEST}"
+  echo "🔍  Checking references in ${REPO_ROOT} against ${MANIFEST}"
 
   scan_repository
   warn_unreferenced_declarations
 
+  export LC_ALL=C.UTF-8
+
+  printf '%s\n' "${REPORTS[@]}" | column  --table  \
+                                          --separator ';' \
+                                          --output-separator ' | '  \
+                                          --table-columns Status,Type,File,Line,Reference,Details
+  echo ""
+
+
   if [[ ${DIVERGENCE_COUNT} -gt 0 ]]; then
-    echo "" >&2
-    echo "❌  ${DIVERGENCE_COUNT} reference(s) disagree with ${MANIFEST}"      >&2
-    echo "    Either fix the reference(s) listed above or -- if it is the"    >&2
-    echo "    manifest which is out of date -- declare the new intent there." >&2
-    exit ${EXIT_DIVERGED}
+    SUMMARIES+=("❌;Reference checks;${DIVERGENCE_COUNT} reference(s) don't match ${MANIFEST}")
+  else
+    SUMMARIES+=("✅;Reference checks;${GOVERNED_COUNT} reference(s) match ${MANIFEST}")
   fi
 
-  note "✅  ${GOVERNED_COUNT} governed reference(s) match ${MANIFEST}"
-
+  local missing=0
   if [[ ${VERIFY_UPSTREAM} == true ]]; then
-    local missing=0
     verify_upstream || missing=$?
 
     if [[ ${missing} -gt 0 ]]; then
-      echo "" >&2
-      echo "❌  ${missing} ref(s) named in ${MANIFEST} do not exist upstream" >&2
-      exit ${EXIT_MISSING_UPSTREAM}
+      SUMMARIES+=("❌;Upstream checks;${missing} ref(s) named in ${MANIFEST} do not exist upstream")
     fi
+  fi
+
+  echo "====================================================================="
+  echo "Summary"
+  echo "====================================================================="
+  printf '%s\n' "${SUMMARIES[@]}" | column  --table  \
+                                            --separator ';' \
+                                            --output-separator ' | '  \
+                                            --table-columns Status,Category,Details
+
+  if [[ ${DIVERGENCE_COUNT} -gt 0 ]]; then
+    exit ${EXIT_DIVERGED}
+  elif [[ ${missing} -gt 0 ]]; then
+    exit ${EXIT_MISSING_UPSTREAM}
   fi
 
   exit ${EXIT_OK}
