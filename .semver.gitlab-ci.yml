@@ -39,6 +39,7 @@
 .pipeline-version:
   stage: .pre
   image: $GLAB_JOB_IMAGE
+  extends: .default-base
   variables:
     DEFAULT_SEMVER_PREFIX: v0.0.0
     SEMVER_STRICT: true
@@ -46,6 +47,7 @@
     # release candidate information:
     GIT_FETCH_EXTRA_FLAGS: --prune --quiet --tags
   before_script:
+    - !reference [.default-base,  before_script]
     - |
       # --- pipeline version (before) ----------------------------------------
       JOB_SETTINGS+=("📛 CI_COMMIT_REF_NAME;${CI_COMMIT_REF_NAME}")
@@ -54,8 +56,8 @@
       JOB_SETTINGS+=("🔓 CI_COMMIT_REF_PROTECTED;${CI_COMMIT_REF_PROTECTED}")
       JOB_SETTINGS+=("🪹 CI_DEFAULT_BRANCH;${CI_DEFAULT_BRANCH}")
       JOB_SETTINGS+=("✨ DEFAULT_SEMVER_PREFIX;${DEFAULT_SEMVER_PREFIX}")
-    - !reference [default,  before_script]
   script:
+    - !reference [.default-base,  script]
     - |
       # --- pipeline version -------------------------------------------------
 

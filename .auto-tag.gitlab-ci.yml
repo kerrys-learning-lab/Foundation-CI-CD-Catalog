@@ -1,10 +1,12 @@
 # ============================================================================
 .auto-tag:
+  extends: .default-base
+  image: $GLAB_JOB_IMAGE
   stage: release
-  extends: .glab-base
   variables:
     GIT_DEPTH: 0
   before_script:
+    - !reference [.default-base,  before_script]
     - |
       # --- auto-tag (before) ------------------------------------------------
       if [[ -z "${RELEASE_TRAIN}" ]]; then
@@ -23,9 +25,9 @@
         echo "❌  Tag ${RELEASE_TRAIN_NEXT_TAG} already exists!"
         exit 10
       fi
-    - !reference [.glab-base,   before_script]
   script:
-    - !reference [.glab-base,   script]
+    - !reference [.default-base,  script]
+    - !reference [.git-login,     script]
     - |
       # --- auto-tag ---------------------------------------------------------
       git tag --annotate  \

@@ -1,7 +1,8 @@
 # ============================================================================
 .release:
-  stage: release
+  extends: .default-base
   image: $GLAB_JOB_IMAGE
+  stage: release
   interruptible: false
   variables:
     GLAB_CHECK_UPDATE: false
@@ -9,12 +10,9 @@
     GLAB_SHOW_WHATS_NEW: false
     RELEASE_README_FILEPATH: $RELEASE_NOTES_DIR/RELEASE.md
   before_script:
+    - !reference [.default-base,  before_script]
     - |
       # --- release (before) -------------------------------------------------
-      echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
-                                                --stdin
-
-      # ----------------------------------------------------------------------
       # Gather the Release Notes MD files, by type:
       declare -A RELEASE_NOTES_FILES
 
@@ -38,8 +36,9 @@
           fi
         done
       fi
-    - !reference [default,  before_script]
   script:
+    - !reference [.default-base,  script]
+    - !reference [.glab-login,    script]
     - |
       # --- release ----------------------------------------------------------
       mkdir -p ${RELEASE_NOTES_DIR}
