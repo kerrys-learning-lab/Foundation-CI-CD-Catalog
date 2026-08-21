@@ -62,7 +62,7 @@ EOF
   run_check
 
   assert_equals "${EXIT_OK}" "${EXIT_CODE}"
-  assert_contains "Internally referenced components need not be declared" "${OUTPUT}"
+  assert_contains "Internally referenced components should not be declared" "${OUTPUT}"
 }
 
 

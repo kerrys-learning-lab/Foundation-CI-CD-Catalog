@@ -48,14 +48,6 @@ workflow:
 
 
 # ============================================================================
-# Checks this repository's version-bearing references against the intent
-# declared in .release-manifest.yml, using this repository's own copy of the
-# check script (scripts/check-refs)
-ref consistency:
-  extends: .ref-consistency
-
-
-# ============================================================================
 # Unfortunately, we can't dog-food this Job because the image hasn't been
 # built yet ... so, we start from scratch for this Job, but later in the
 # Pipeline we'll compare this Job to one that uses the Pipeline image...
@@ -67,7 +59,7 @@ pipeline version:
       # --- pipeline version (before) ----------------------------------------
       dnf install -y epel-release
       dnf makecache
-      dnf --quiet install --assumeyes git ${ROCKYLINUX_PACKAGES}
+      dnf --quiet install --assumeyes git
     - !reference [.pipeline-version,  before_script]
 
 

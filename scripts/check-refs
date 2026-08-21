@@ -166,8 +166,13 @@ function parse_args() {
     esac
   done
 
+  # NOTE: In CI/CD, these items will be defined... these are just fallbaks
+  #       for running the tool on the command-line
   if [[ -z "${CI_PROJECT_PATH}" ]]; then
-    die "One of '--ci-project-path' or CI_PROJECT_PATH must be provided."
+    CI_PROJECT_PATH=$(git config --get remote.origin.url | sed -E 's/(git@|https:\/\/)[^:/]+[:\/]//; s/\.git$//')
+  fi
+  if [[ -z "${CI_COMMIT_REF_NAME}" ]]; then
+    CI_COMMIT_REF_NAME=$(git symbolic-ref --short HEAD)
   fi
 }
 
@@ -208,7 +213,7 @@ function read_manifest() {
   while read -r key value; do
     if [[ -n "${key}" ]]; then
       if [[ "${key}" == "${CI_PROJECT_PATH}" ]]; then
-        SUMMARIES+=("⚠️;Manifest check;Internally referenced components need not be declared in .release-manifest.yml")
+        SUMMARIES+=("⚠️;Manifest check;Internally referenced components should not be declared in .release-manifest.yml")
       else
         COMPONENT_REFS[${key}]=${value}
       fi
@@ -216,7 +221,12 @@ function read_manifest() {
   done < <(yq -r '(.components // {}) | to_entries | .[] | .key + " " + .value' "${MANIFEST}")
 
   while read -r key value; do
-    [[ -n "${key}" ]] && IMAGE_TAGS[${key}]=${value}
+    if [[ -n "${key}" ]]; then
+      if [[ "${key}" == "devsecops"* && "${value}" != "main" && "${value}" != "release-"* ]]; then
+        SUMMARIES+=("⚠️;Manifest check;DevSecOps images should prefer release-* tags: ${key}:${value}")
+      fi
+      IMAGE_TAGS[${key}]=${value}
+    fi
   done < <(yq -r '(.images // {}) | to_entries | .[] | .key + " " + .value' "${MANIFEST}")
 
   mapfile -t IGNORE_GLOBS < <(yq -r '(.ignore // []) | .[]' "${MANIFEST}")
@@ -512,6 +522,8 @@ function verify_upstream() {
 
       if gitlab_api "projects/${encoded}/registry/repositories/${repository_id}/tags/${tag}" >/dev/null; then
         SUMMARIES+=("✅;Image upstream check;${image_path}:${tag} exists upstream")
+      elif [[ "${project}" == *"${CI_PROJECT_PATH}"* && "${tag}" == "${CI_COMMIT_REF_NAME//\//-}" ]]; then
+        SUMMARIES+=("🛠️;Image upstream check;${image_path}:${tag} is currently being built")
       else
         SUMMARIES+=("❌;Image upstream check;${image_path}:${tag} does not exist upstream")
         missing=$((missing + 1))
