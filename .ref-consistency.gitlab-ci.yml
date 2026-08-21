@@ -1,0 +1,110 @@
+# ============================================================================
+# Verifies that every version-bearing reference in the repository agrees with
+# the intent declared in the release manifest.
+#
+#   Kind               Declared in            Example
+#   -----------------  ---------------------  ------------------------------
+#   component include  manifest 'components:'  <server>/<project>/<name>@release/0.4
+#   container image    manifest 'images:'      <registry>/<project>/<name>:release-0.4
+#
+# Cutting a release branch carries a set of implied, easy-to-forget edits.
+# The manifest is the one place that intent is written down; this Job is the
+# gate which makes disagreeing with it a Pipeline failure rather than a
+# discovery made two releases later.
+#
+# The comparison itself lives in a standalone script (scripts/check-refs) and
+# NOT in this file, deliberately: a pre-commit hook runs the very same script,
+# so a developer sees the same findings before the commit is ever created.
+#
+# The script is resolved in this order:
+#   1. ${REF_CONSISTENCY_SCRIPT}, if executable  (the repository's own copy --
+#      this is what lets this project dog-food the version under review)
+#   2. 'check-refs' on the PATH                  (baked into the images built
+#      from this project, which is how consuming projects get it)
+#
+# Inputs:
+#   CICD_BOT_TOKEN                   - Token used to query the GitLab API.
+#                                      When unavailable (e.g. a protected
+#                                      variable on an unprotected ref),
+#                                      upstream verification is skipped with
+#                                      a warning; the manifest comparison
+#                                      itself always runs.
+#   CI_SERVER_HOST                   - GitLab host (provided by GitLab)
+#   RELEASE_MANIFEST                 - Path to the release manifest
+#   REF_CONSISTENCY_SCRIPT           - Path to the repository's own copy of
+#                                      the check script
+#   REF_CONSISTENCY_VERIFY_UPSTREAM  - If 'true', also assert that every ref
+#                                      named in the manifest exists upstream
+#
+# Outputs:
+#   ${JOB_ARTIFACTS_DIR}/ref-consistency.log  - the check's full output
+# ============================================================================
+.ref-consistency:
+  stage: .pre
+  image: $GLAB_JOB_IMAGE
+  variables:
+    GLAB_CHECK_UPDATE: false
+    GLAB_SEND_TELEMETRY: false
+    GLAB_SHOW_WHATS_NEW: false
+    RELEASE_MANIFEST: .release-manifest.yml
+    REF_CONSISTENCY_SCRIPT: scripts/check-refs
+    REF_CONSISTENCY_VERIFY_UPSTREAM: "true"
+  before_script:
+    - |
+      # --- ref consistency (before) -----------------------------------------
+      JOB_SETTINGS+=("📜 RELEASE_MANIFEST;${RELEASE_MANIFEST}")
+      JOB_SETTINGS+=("🔎 REF_CONSISTENCY_SCRIPT;${REF_CONSISTENCY_SCRIPT}")
+      JOB_SETTINGS+=("🌐 Verify refs exist upstream;${REF_CONSISTENCY_VERIFY_UPSTREAM}")
+    - !reference [default,  before_script]
+    - |
+      # --- ref consistency (before, cont'd) ---------------------------------
+      if [[ "${REF_CONSISTENCY_VERIFY_UPSTREAM}" == "true" ]]; then
+        if [[ -n "${CICD_BOT_TOKEN}" ]]; then
+          echo ${CICD_BOT_TOKEN} | glab auth login  --hostname ${CI_SERVER_HOST}  \
+                                                    --stdin
+        else
+          echo "⚠️  CICD_BOT_TOKEN is not available to this Job."
+          echo "    The manifest comparison will still run, but the refs it"
+          echo "    declares cannot be verified against the server."
+          REF_CONSISTENCY_VERIFY_UPSTREAM=false
+        fi
+      fi
+  script:
+    - |
+      # --- ref consistency --------------------------------------------------
+      if [[ -x "${REF_CONSISTENCY_SCRIPT}" ]]; then
+        CHECK_REFS=${REF_CONSISTENCY_SCRIPT}
+      elif command -v check-refs > /dev/null; then
+        CHECK_REFS=$(command -v check-refs)
+      else
+        echo "❌  Unable to locate the 'check-refs' script"                   >&2
+        echo "    Expected an executable at ${REF_CONSISTENCY_SCRIPT}, or"    >&2
+        echo "    'check-refs' on the PATH"                                   >&2
+        exit 175
+      fi
+
+      if [[ ! -f "${RELEASE_MANIFEST}" ]]; then
+        echo "❌  No release manifest at ${RELEASE_MANIFEST}"                 >&2
+        echo "    Every version-bearing reference must declare its intent;"   >&2
+        echo "    see ${CHECK_REFS} --help"                                   >&2
+        exit 176
+      fi
+
+      CHECK_REFS_ARGS=()
+      CHECK_REFS_ARGS+=(--manifest ${RELEASE_MANIFEST})
+      CHECK_REFS_ARGS+=(--verbose)
+
+      if [[ "${REF_CONSISTENCY_VERIFY_UPSTREAM}" == "true" ]]; then
+        CHECK_REFS_ARGS+=(--verify-upstream)
+      fi
+
+      ${CHECK_REFS} "${CHECK_REFS_ARGS[@]}" 2>&1  \
+        | tee ${JOB_ARTIFACTS_DIR}/ref-consistency.log
+
+      # 'tee' would otherwise mask a failing check:
+      exit ${PIPESTATUS[0]}
+  artifacts:
+    when: always
+    paths:
+      - ${JOB_ARTIFACTS_DIR}
+    expire_in: 1 week

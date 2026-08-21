@@ -1,0 +1,557 @@
+#!/usr/bin/env bash
+# ============================================================================
+# check-refs -- verify every version-bearing reference in a repository against
+#               the intent declared in .release-manifest.yml
+#
+#   Kind               Example reference                           Manifest section
+#   -----------------  ------------------------------------------  ----------------
+#   component include  <server>/<project>/<name>@release/0.4        components:
+#   container image    <registry>/<project>/<name>:release-0.4      images:
+#
+# Mind the slug: a component ref uses `release/0.4`, while the container image
+# tag built from that same branch is `release-0.4`.  The manifest declares both
+# forms explicitly; this script never converts one into the other.
+#
+# A line carrying the marker `check-refs: ignore` is skipped, which is how
+# documentation and examples opt out of being treated as real references.
+#
+# This script FLAGS divergence and prints one `file:line` per finding.
+# It NEVER rewrites a file -- fixing is deliberately a human action.
+#
+# It is intentionally standalone (no sourcing of CI YAML, no CI variables
+# required) so that a second caller -- a pre-commit hook -- can reuse it
+# unchanged.
+#
+#
+# Usage:  check-refs [OPTIONS]
+#
+#   --manifest FILE     Manifest to read
+#                       (default: <repo-root>/.release-manifest.yml)
+#   --repo-root DIR     Repository to scan
+#                       (default: git top-level, else '.')
+#   --verify-upstream   Additionally assert that every ref named in the
+#                       manifest actually exists upstream.  Requires `glab`,
+#                       `jq` and an authenticated GitLab host.
+#   --verbose           Also list every governed reference which matched
+#   --quiet             Print divergences only; suppress the summary
+#   -h, --help          Print this help and exit
+#
+#
+# Exit codes:
+#     0   every governed reference matches the manifest
+#     1   at least one reference diverges from, or is not governed by, the
+#         manifest
+#     2   usage error, or the manifest is missing / unreadable / unsupported
+#     3   a ref named in the manifest does not exist upstream
+#
+#
+# Requires: bash 4+, yq (any flavour which accepts jq-style expressions).
+#           --verify-upstream additionally requires jq and glab.
+# ============================================================================
+set -euo pipefail
+
+
+# ----------------------------------------------------------------------------
+readonly EXIT_OK=0
+readonly EXIT_DIVERGED=1
+readonly EXIT_USAGE=2
+readonly EXIT_MISSING_UPSTREAM=3
+
+# The manifest format this script understands.  A manifest declaring a newer
+# version is refused rather than silently mis-read.
+readonly SUPPORTED_MANIFEST_VERSION=1
+
+# Lines carrying this marker are skipped entirely, so that documentation and
+# examples are not mistaken for real, version-bearing references
+readonly IGNORE_LINE_REGEX='check-refs:[[:space:]]*ignore'
+
+# Matches a CI/CD Catalog include such as
+#
+#     - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4  (check-refs: ignore)
+#                  \_____________/ \______________________________/ \____/ \_________/
+#                    host token           project path               name      ref
+#                    (discarded)
+#
+# Capture group 2 is everything from the host token onwards.
+readonly COMPONENT_REGEX='(^|[[:space:]]|-)component:[[:space:]]+([^[:space:]"'"'"']+)'
+
+# Matches a registry image reference such as
+#
+#     $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:release-0.4  (check-refs: ignore)
+#                  \________________________________/\__/ \_________/
+#                       project path                 name      tag
+#
+# Capture group 1 is the image path, group 2 the tag.  The '/' immediately
+# after the variable is required, which is what excludes $CI_REGISTRY_IMAGE/...
+readonly IMAGE_REGEX='\$\{?CI_REGISTRY\}?/([^:[:space:]"'"'"']+):([^[:space:]"'"'"',]+)'
+
+# An image tag which looks like a release, used to decide whether an image
+# reference outside the manifest is worth complaining about.  Ephemeral tags
+# (build.$CI_PIPELINE_IID, 0.0.0-main.42, ...) deliberately do not match.
+readonly RELEASE_TAG_REGEX='^(release-[[:digit:]]+\.[[:digit:]]+|v?[[:digit:]]+\.[[:digit:]]+(\.[[:digit:]]+)?)$'
+
+
+# ----------------------------------------------------------------------------
+MANIFEST=
+REPO_ROOT=
+VERIFY_UPSTREAM=false
+VERBOSE=false
+QUIET=false
+
+declare -A COMPONENT_REFS=()   # project path -> declared component ref
+declare -A IMAGE_TAGS=()       # project path -> declared image tag
+declare -A COMPONENTS_SEEN=()  # project path -> count of refs found
+declare -A IMAGES_SEEN=()      # project path -> space-separated registry paths
+declare -a IGNORE_GLOBS=()
+
+DIVERGENCE_COUNT=0
+GOVERNED_COUNT=0
+GLAB_ARGS=()
+
+
+# ----------------------------------------------------------------------------
+function usage() {
+  sed -n '/^# Usage:/,/^# Requires:/p' "${BASH_SOURCE[0]}" | sed -e 's/^# \{0,1\}//'
+}
+
+
+# ----------------------------------------------------------------------------
+function die() {
+  echo "❌  $*" >&2
+  exit ${EXIT_USAGE}
+}
+
+
+# ----------------------------------------------------------------------------
+# Reports one divergence:  <file>:<line>: <message>
+function report() {
+  local file=$1
+  local lineno=$2
+  shift 2
+
+  echo "${file}:${lineno}: $*"
+  DIVERGENCE_COUNT=$((DIVERGENCE_COUNT + 1))
+}
+
+
+# ----------------------------------------------------------------------------
+function note() {
+  [[ ${QUIET} == true ]] && return 0
+  echo "$*"
+}
+
+
+# ----------------------------------------------------------------------------
+function parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --manifest)
+        [[ $# -ge 2 ]] || die "--manifest requires an argument"
+        MANIFEST=$2
+        shift 2
+        ;;
+      --repo-root)
+        [[ $# -ge 2 ]] || die "--repo-root requires an argument"
+        REPO_ROOT=$2
+        shift 2
+        ;;
+      --verify-upstream)
+        VERIFY_UPSTREAM=true
+        shift
+        ;;
+      --verbose)
+        VERBOSE=true
+        shift
+        ;;
+      --quiet)
+        QUIET=true
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit ${EXIT_OK}
+        ;;
+      *)
+        die "unknown argument: $1"
+        ;;
+    esac
+  done
+}
+
+
+# ----------------------------------------------------------------------------
+function resolve_paths() {
+  if [[ -z "${REPO_ROOT}" ]]; then
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || REPO_ROOT=.
+  fi
+
+  [[ -d "${REPO_ROOT}" ]] || die "not a directory: ${REPO_ROOT}"
+
+  REPO_ROOT=${REPO_ROOT%/}
+  MANIFEST=${MANIFEST:-${REPO_ROOT}/.release-manifest.yml}
+
+  [[ -r "${MANIFEST}" ]] || die "manifest not found or unreadable: ${MANIFEST}"
+}
+
+
+# ----------------------------------------------------------------------------
+# Reads the manifest into COMPONENT_REFS / IMAGE_TAGS / IGNORE_GLOBS.
+#
+# Only jq-compatible expressions are used, so that either flavour of `yq`
+# (mikefarah's Go implementation or kislyuk's jq wrapper) can read the file.
+function read_manifest() {
+  command -v yq >/dev/null || die "yq is not installed or not in PATH"
+
+  local manifest_version
+  manifest_version=$(yq -r '.version // 1' "${MANIFEST}") ||  \
+    die "unable to parse manifest: ${MANIFEST}"
+
+  [[ ${manifest_version} == "${SUPPORTED_MANIFEST_VERSION}" ]] ||  \
+    die "unsupported manifest version: ${manifest_version} (expected ${SUPPORTED_MANIFEST_VERSION})"
+
+  local key
+  local value
+
+  while read -r key value; do
+    [[ -n "${key}" ]] && COMPONENT_REFS[${key}]=${value}
+  done < <(yq -r '(.components // {}) | to_entries | .[] | .key + " " + .value' "${MANIFEST}")
+
+  while read -r key value; do
+    [[ -n "${key}" ]] && IMAGE_TAGS[${key}]=${value}
+  done < <(yq -r '(.images // {}) | to_entries | .[] | .key + " " + .value' "${MANIFEST}")
+
+  mapfile -t IGNORE_GLOBS < <(yq -r '(.ignore // []) | .[]' "${MANIFEST}")
+
+  if [[ ${#COMPONENT_REFS[@]} -eq 0 && ${#IMAGE_TAGS[@]} -eq 0 ]]; then
+    die "manifest declares no components and no images: ${MANIFEST}"
+  fi
+}
+
+
+# ----------------------------------------------------------------------------
+# Echoes the longest declared project path which prefixes $2, or nothing.
+#   $1  name of the associative array to search (COMPONENT_REFS or IMAGE_TAGS)
+#   $2  the full path found in the repository
+function longest_declared_prefix() {
+  local -n declared=$1
+  local path=$2
+
+  local key
+  local best=
+
+  for key in "${!declared[@]}"; do
+    if [[ "${path}" == "${key}/"* && ${#key} -gt ${#best} ]]; then
+      best=${key}
+    fi
+  done
+
+  echo "${best}"
+}
+
+
+# ----------------------------------------------------------------------------
+function is_ignored() {
+  local path=$1
+  local glob
+
+  for glob in "${IGNORE_GLOBS[@]}"; do
+    # Deliberately unquoted: ${glob} is a pattern, not a literal
+    # shellcheck disable=SC2053
+    [[ "${path}" == ${glob} ]] && return 0
+  done
+
+  return 1
+}
+
+
+# ----------------------------------------------------------------------------
+function repository_files() {
+  if git -C "${REPO_ROOT}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # Tracked files plus new, non-ignored ones: a brand-new file carrying a
+    # stale ref must be caught before it is ever committed
+    git -C "${REPO_ROOT}" ls-files -z --cached --others --exclude-standard
+  else
+    find "${REPO_ROOT}" -type f -not -path '*/.git/*' -printf '%P\0'
+  fi
+}
+
+
+# ----------------------------------------------------------------------------
+function check_component_ref() {
+  local file=$1
+  local lineno=$2
+  local value=$3
+
+  # Discard the host token ($CI_SERVER_FQDN and friends)
+  local path_and_ref=${value#*/}
+
+  if [[ "${path_and_ref}" != *@* ]]; then
+    report "${file}" "${lineno}"  \
+           "component '${path_and_ref}' names no version (expected '<project>/<component>@<ref>')"
+    return
+  fi
+
+  local ref=${path_and_ref##*@}
+  local full_path=${path_and_ref%@*}
+
+  local project
+  project=$(longest_declared_prefix COMPONENT_REFS "${full_path}")
+
+  if [[ -z "${project}" ]]; then
+    report "${file}" "${lineno}"  \
+           "component '${full_path}' is not governed by the manifest (declare '${full_path%/*}' under 'components:')"
+    return
+  fi
+
+  COMPONENTS_SEEN[${project}]=$(( ${COMPONENTS_SEEN[${project}]:-0} + 1 ))
+  GOVERNED_COUNT=$((GOVERNED_COUNT + 1))
+
+  if [[ "${ref}" != "${COMPONENT_REFS[${project}]}" ]]; then
+    report "${file}" "${lineno}"  \
+           "component '${full_path}' is '@${ref}' but the manifest declares '@${COMPONENT_REFS[${project}]}'"
+  elif [[ ${VERBOSE} == true ]]; then
+    note "${file}:${lineno}: ✅  ${full_path}@${ref}"
+  fi
+}
+
+
+# ----------------------------------------------------------------------------
+function check_image_ref() {
+  local file=$1
+  local lineno=$2
+  local image_path=$3
+  local tag=$4
+
+  local project
+  project=$(longest_declared_prefix IMAGE_TAGS "${image_path}")
+
+  if [[ -z "${project}" ]]; then
+    # Ephemeral tags (build.$CI_PIPELINE_IID and the like) are not
+    # version-bearing, so an undeclared project is only worth reporting when
+    # the tag looks like a release
+    if [[ "${tag}" =~ ${RELEASE_TAG_REGEX} ]]; then
+      report "${file}" "${lineno}"  \
+             "image '${image_path}:${tag}' is not governed by the manifest (declare '${image_path%/*}' under 'images:')"
+    fi
+    return
+  fi
+
+  IMAGES_SEEN[${project}]="${IMAGES_SEEN[${project}]:-} ${image_path}"
+  GOVERNED_COUNT=$((GOVERNED_COUNT + 1))
+
+  if [[ "${tag}" != "${IMAGE_TAGS[${project}]}" ]]; then
+    report "${file}" "${lineno}"  \
+           "image '${image_path}' is ':${tag}' but the manifest declares ':${IMAGE_TAGS[${project}]}'"
+  elif [[ ${VERBOSE} == true ]]; then
+    note "${file}:${lineno}: ✅  ${image_path}:${tag}"
+  fi
+}
+
+
+# ----------------------------------------------------------------------------
+function scan_file() {
+  local file=$1
+  local lineno=0
+  local line
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    lineno=$((lineno + 1))
+
+    if [[ "${line}" =~ ${IGNORE_LINE_REGEX} ]]; then
+      continue
+    fi
+
+    if [[ "${line}" =~ ${COMPONENT_REGEX} ]]; then
+      check_component_ref "${file}" "${lineno}" "${BASH_REMATCH[2]}"
+    fi
+
+    if [[ "${line}" =~ ${IMAGE_REGEX} ]]; then
+      check_image_ref "${file}" "${lineno}" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    fi
+  done < "${REPO_ROOT}/${file}"
+}
+
+
+# ----------------------------------------------------------------------------
+function scan_repository() {
+  local manifest_relative=${MANIFEST#"${REPO_ROOT}"/}
+  local file
+
+  while IFS= read -r -d '' file; do
+    # The manifest is the declaration; it is not a site to check against itself
+    [[ "${file}" == "${manifest_relative}" ]] && continue
+
+    is_ignored "${file}" && continue
+
+    [[ -r "${REPO_ROOT}/${file}" ]] || continue
+
+    # Text files only
+    grep -Iq . "${REPO_ROOT}/${file}" 2>/dev/null || continue
+
+    scan_file "${file}"
+  done < <(repository_files)
+}
+
+
+# ----------------------------------------------------------------------------
+# A manifest entry which governs nothing is stale.  Warned about rather than
+# failed on: an unused declaration is untidy, not wrong.
+function warn_unreferenced_declarations() {
+  local project
+
+  for project in "${!COMPONENT_REFS[@]}"; do
+    if [[ -z "${COMPONENTS_SEEN[${project}]:-}" ]]; then
+      note "⚠️  components: ${project} is declared but no 'component:' include references it"
+    fi
+  done
+
+  for project in "${!IMAGE_TAGS[@]}"; do
+    if [[ -z "${IMAGES_SEEN[${project}]:-}" ]]; then
+      note "⚠️  images: ${project} is declared but no image reference uses it"
+    fi
+  done
+}
+
+
+# ----------------------------------------------------------------------------
+function gitlab_host() {
+  if [[ -n "${CI_SERVER_HOST:-}" ]]; then
+    echo "${CI_SERVER_HOST}"
+    return
+  fi
+
+  if [[ -n "${GITLAB_HOST:-}" ]]; then
+    echo "${GITLAB_HOST}"
+    return
+  fi
+
+  local url
+  url=$(git -C "${REPO_ROOT}" remote get-url origin 2>/dev/null) || return 0
+
+  url=${url#*://}
+  url=${url#*@}
+  url=${url%%[:/]*}
+
+  echo "${url}"
+}
+
+
+# ----------------------------------------------------------------------------
+function urlencode_path() {
+  echo "${1//\//%2F}"
+}
+
+
+# ----------------------------------------------------------------------------
+function gitlab_api() {
+  glab api "${GLAB_ARGS[@]}" "$1" 2>/dev/null
+}
+
+
+# ----------------------------------------------------------------------------
+# Asserts that every ref named in the manifest actually exists upstream.
+#
+# A component ref is looked up as a branch, then as a tag.  An image tag is
+# looked up in the container registry, for each registry repository the scan
+# actually found -- those are the only repositories whose tag matters here.
+#
+# Returns the number of refs which could not be found.
+function verify_upstream() {
+  command -v glab >/dev/null || die "glab is not installed or not in PATH"
+  command -v jq   >/dev/null || die "jq is not installed or not in PATH"
+
+  local host
+  host=$(gitlab_host)
+
+  GLAB_ARGS=()
+  [[ -n "${host}" ]] && GLAB_ARGS=(--hostname "${host}")
+
+  local missing=0
+  local project
+  local encoded
+  local ref
+  local tag
+  local repositories
+  local repository_id
+  local image_path
+
+  for project in "${!COMPONENT_REFS[@]}"; do
+    ref=${COMPONENT_REFS[${project}]}
+    encoded=$(urlencode_path "${project}")
+
+    if gitlab_api "projects/${encoded}/repository/branches/$(urlencode_path "${ref}")" >/dev/null; then
+      note "✅  components: ${project}@${ref} exists upstream (branch)"
+    elif gitlab_api "projects/${encoded}/repository/tags/$(urlencode_path "${ref}")" >/dev/null; then
+      note "✅  components: ${project}@${ref} exists upstream (tag)"
+    else
+      echo "❌  components: ${project}@${ref} does not exist upstream" >&2
+      missing=$((missing + 1))
+    fi
+  done
+
+  for project in "${!IMAGE_TAGS[@]}"; do
+    tag=${IMAGE_TAGS[${project}]}
+    encoded=$(urlencode_path "${project}")
+    repositories=$(gitlab_api "projects/${encoded}/registry/repositories") || repositories='[]'
+
+    for image_path in $(echo "${IMAGES_SEEN[${project}]:-}" | tr ' ' '\n' | sort -u); do
+      repository_id=$(echo "${repositories}"  \
+                      | jq -r --arg path "${image_path}" '.[] | select(.path == $path) | .id')
+
+      if [[ -z "${repository_id}" ]]; then
+        echo "❌  images: ${project} has no registry repository '${image_path}'" >&2
+        missing=$((missing + 1))
+        continue
+      fi
+
+      if gitlab_api "projects/${encoded}/registry/repositories/${repository_id}/tags/${tag}" >/dev/null; then
+        note "✅  images: ${image_path}:${tag} exists upstream"
+      else
+        echo "❌  images: ${image_path}:${tag} does not exist upstream" >&2
+        missing=$((missing + 1))
+      fi
+    done
+  done
+
+  return ${missing}
+}
+
+
+# ----------------------------------------------------------------------------
+function main() {
+  parse_args "$@"
+  resolve_paths
+  read_manifest
+
+  note "🔍  Checking references in ${REPO_ROOT} against ${MANIFEST}"
+
+  scan_repository
+  warn_unreferenced_declarations
+
+  if [[ ${DIVERGENCE_COUNT} -gt 0 ]]; then
+    echo "" >&2
+    echo "❌  ${DIVERGENCE_COUNT} reference(s) disagree with ${MANIFEST}"      >&2
+    echo "    Either fix the reference(s) listed above or -- if it is the"    >&2
+    echo "    manifest which is out of date -- declare the new intent there." >&2
+    exit ${EXIT_DIVERGED}
+  fi
+
+  note "✅  ${GOVERNED_COUNT} governed reference(s) match ${MANIFEST}"
+
+  if [[ ${VERIFY_UPSTREAM} == true ]]; then
+    local missing=0
+    verify_upstream || missing=$?
+
+    if [[ ${missing} -gt 0 ]]; then
+      echo "" >&2
+      echo "❌  ${missing} ref(s) named in ${MANIFEST} do not exist upstream" >&2
+      exit ${EXIT_MISSING_UPSTREAM}
+    fi
+  fi
+
+  exit ${EXIT_OK}
+}
+
+
+# ----------------------------------------------------------------------------
+main "$@"

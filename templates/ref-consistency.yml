@@ -1,0 +1,64 @@
+# ============================================================================
+# Fails the Pipeline when a version-bearing reference in the repository
+# disagrees with the intent declared in the release manifest.
+#
+# Cutting a release branch implies a set of easy-to-forget edits: every
+# `component:` include and every container image tag names a version, and
+# nothing else in the repository records what those versions are *supposed*
+# to be.  The manifest records it; this component enforces it.
+#
+# The repository must contain a release manifest (default
+# `.release-manifest.yml`); see `scripts/check-refs --help` for its format.
+#
+# Runs in the `.pre` stage, so the Pipeline stops before anything is built
+# against a reference nobody intended.
+spec:
+
+  inputs:
+    manifest:
+      description:  Path to the manifest which declares the intended refs for
+                    this repository.
+      type: string
+      default: .release-manifest.yml
+
+    verify_upstream:
+      description:  If true, additionally assert that every ref named in the
+                    manifest actually exists upstream.  Requires
+                    CICD_BOT_TOKEN; skipped with a warning when unavailable.
+      type: boolean
+      default: true
+
+    job_name_prefix:
+      description: Optional prefix for this Job's name
+      type: string
+      default: ''
+
+    job_name_suffix:
+      description: Optional suffix for this Job's name
+      type: string
+      default: ''
+
+
+  component:
+    - name
+    - version
+    - reference
+
+
+---
+
+
+# ============================================================================
+include:
+  - local: templates/defaults.yml
+  - local: .ref-consistency.gitlab-ci.yml
+
+
+# ----------------------------------------------------------------------------
+"$[[ inputs.job_name_prefix ]]ref consistency$[[ inputs.job_name_suffix ]]":
+  extends: .ref-consistency
+  variables:
+    COMPONENT_NAME: $[[ component.name ]]
+    COMPONENT_REFERENCE: $[[ component.reference ]]
+    RELEASE_MANIFEST: $[[ inputs.manifest ]]
+    REF_CONSISTENCY_VERIFY_UPSTREAM: $[[ inputs.verify_upstream ]]

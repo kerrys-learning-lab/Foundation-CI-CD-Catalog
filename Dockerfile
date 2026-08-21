@@ -24,6 +24,13 @@ RUN dnf --quiet install --assumeyes epel-release  &&  \
                                     yq
 
 
+# ----------------------------------------------------------------------------
+# Ships the release-manifest checker to consuming Pipelines: a project which
+# includes templates/ref-consistency.yml gets the script from this image
+# rather than having to vendor a copy of it.
+COPY scripts/check-refs /usr/local/bin/check-refs
+
+
 
 # ============================================================================
 FROM base AS bashunit
