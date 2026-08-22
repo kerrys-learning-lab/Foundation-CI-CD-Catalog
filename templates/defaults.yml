@@ -8,6 +8,7 @@ variables:
   GLAB_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:release-0.6
   MKDOCS_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/mkdocs:release-0.6
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi
+  PUBLISH_MODE: ""
 
 
 # ============================================================================
@@ -143,14 +144,15 @@ default:
 #   - Publishing never occurs from an MR
 #   - For branches and tags, publishing may be skipped or forced via a 'mode'
 #     input (implies the Job MUST declare said input)
-#   - Unless overridden by 'mode', publishing only occurs for protected
-#     branches and tags
+#   - Publishing only occurs for protected branches and tags (unless
+#     overridden by 'mode')
 .rules//publish:
   rules:
-    - !reference [.rules//never-if-merge-request, rules]
-    - if: '"$[[ inputs.mode ]]" == "skip"'
+    - !reference [.rules//never-if-merge-request,   rules]
+    - !reference [.rules//never-if-gitlab-ci-local, rules]
+    - if: $PUBLISH_MODE == "skip"
       when: never
-    - if: '"$[[ inputs.mode ]]" == "force"'
+    - if: $PUBLISH_MODE == "force"
     - !reference [.rules//if-protected-ref,  rules]
 
 

@@ -127,13 +127,11 @@ include:
   extends: .tarfile-publish
   stage: $[[ inputs.publish_stage ]]
   variables:
+    PUBLISH_MODE: $[[ inputs.publish_mode ]]
     TARFILE_NAME: $[[ inputs.name ]]
     TARFILE_VERSION: $[[ inputs.version ]]
     TARFILE_EXTENSION: $[[ inputs.extension ]]
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]
   rules:
-    - if: '"$[[ inputs.publish_mode ]]" == "never"'
-      when: never
-    - if: '"$[[ inputs.publish_mode ]]" == "always"'
-    - !reference [.rules//if-protected-ref,  rules]
+    - !reference [.rules//publish,  rules]
