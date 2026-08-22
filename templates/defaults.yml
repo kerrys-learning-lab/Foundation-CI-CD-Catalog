@@ -138,6 +138,23 @@ default:
 
 
 # ============================================================================
+# These rules enforce the nominal publish case:
+#
+#   - Publishing never occurs from an MR
+#   - For branches and tags, publishing may be skipped or forced via a 'mode'
+#     input (implies the Job MUST declare said input)
+#   - Unless overridden by 'mode', publishing only occurs for protected
+#     branches and tags
+.rules//publish:
+  rules:
+    - !reference [.rules//never-if-merge-request, rules]
+    - if: '"$[[ inputs.mode ]]" == "skip"'
+      when: never
+    - if: '"$[[ inputs.mode ]]" == "force"'
+    - !reference [.rules//if-protected-ref,  rules]
+
+
+# ============================================================================
 .rules//if-default-branch:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
