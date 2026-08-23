@@ -6,7 +6,7 @@ version: 1
 # ----------------------------------------------------------------------------
 components:
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/image
-  devsecops/cicd-catalog/image: release/0.3
+  devsecops/cicd-catalog/image: release/0.4
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/release-me
   devsecops/cicd-catalog/release-me: release/0.1
 
