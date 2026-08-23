@@ -1,50 +1,14 @@
 # ============================================================================
 # Declared intent for every version-bearing reference in this repository.
-#
-# Cutting a release branch carries a set of implied, easy-to-forget edits:
-# CI/CD Catalog `component:` includes and container image tags all name a
-# version, and nothing in the repository records what that version is
-# *supposed* to be.  Without such a record, drift and intent are
-# indistinguishable and a reviewer cannot tell a typo from a decision.
-#
-# This file *is* that record.  `scripts/check-refs` compares it against the
-# repository and flags (never rewrites) every reference which disagrees.
-#
-# Component version lines are independent, so intent cannot be derived from
-# the branch name: a `release/1.2` branch may legitimately want
-# `foundation release/4.2`.  Hence a declaration rather than an inference.
-#
-# Workflow when cutting a release branch:
-#   1. git switch -c release/X.Y
-#   2. edit this file          <-- the single place intent is expressed
-#   3. scripts/check-refs      <-- lists every file:line which now disagrees
-#   4. fix those sites, commit, push
-# ============================================================================
 version: 1
 
 
 # ----------------------------------------------------------------------------
-# CI/CD Catalog `component:` includes, keyed by GitLab project path.
-#
-# The declared value is the ref (branch or tag) which *every* `component:`
-# include of that project must use.  One entry governs all components of a
-# project, because a project has a single version line:
-#
-#   components:
-#     devsecops/cicd-catalog/foundation: release/0.4
-#
-#   ...governs $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/semver@release/0.4
-#          and $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@release/0.4
-#
-# A `component:` include of an *undeclared* project is an error: every
-# component ref is version-bearing, so none may go ungoverned.
-#
-# NOTE: It's not necessary to list the *current* project as a component, as
-#       internally referenced components are always enforced to use
-#       $[[ component.reference ]]
 components:
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/image
   devsecops/cicd-catalog/image: release/0.3
+  # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/release-me
+  devsecops/cicd-catalog/release-me: release/0.1
 
 # ----------------------------------------------------------------------------
 # Container image tags, keyed by GitLab project path.
@@ -58,7 +22,7 @@ components:
 # tags such as `$CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID` carry no
 # release version and are ignored.
 images:
-  devsecops/cicd-catalog/foundation: release-0.6
+  devsecops/cicd-catalog/foundation: release-0.7
 
 
 # ----------------------------------------------------------------------------

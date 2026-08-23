@@ -1,5 +1,7 @@
 # ============================================================================
 include:
+
+  # --------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.3
     inputs:
       target: glab
@@ -9,6 +11,7 @@ include:
       merge_forward: false
       release: false
 
+  # --------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.3
     inputs:
       target: mkdocs
@@ -20,6 +23,7 @@ include:
       merge_forward: false
       release: false
 
+  # --------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.3
     inputs:
       target: bashunit
@@ -31,11 +35,14 @@ include:
       merge_forward: false
       release: false
 
+  # --------------------------------------------------------------------------
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/release-me/check-release@release/0.1
+
+  # --------------------------------------------------------------------------
   - local: templates/defaults.yml
   - local: .auto-merge-forward.gitlab-ci.yml
   - local: .auto-tag.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
-  - local: .ref-consistency.gitlab-ci.yml
   - local: .release.gitlab-ci.yml
   - local: .semver.gitlab-ci.yml
 
@@ -96,18 +103,6 @@ dogfood [pipeline version]:
       # --- dogfood [pipeline-version] ---------------------------------------
       diff --report-identical-files ${PIPELINE_ARTIFACTS_DIR}/semver.env  \
                                     ${PIPELINE_ARTIFACTS_DIR}/semver.env.orig
-
-
-# ============================================================================
-# Proves that consuming projects -- which have no scripts/check-refs of their
-# own -- get a working checker from the image.  REF_CONSISTENCY_SCRIPT is
-# blanked so that the copy baked into the image is the one exercised.
-dogfood [ref consistency]:
-  stage: test
-  extends: .ref-consistency
-  image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID
-  variables:
-    REF_CONSISTENCY_SCRIPT: ''
 
 
 # ============================================================================
