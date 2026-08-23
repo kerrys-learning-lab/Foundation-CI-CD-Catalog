@@ -22,7 +22,7 @@ components:
 # tags such as `$CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID` carry no
 # release version and are ignored.
 images:
-  devsecops/cicd-catalog/foundation: release-0.7
+  devsecops/cicd-catalog/foundation: main
 
 
 # ----------------------------------------------------------------------------
