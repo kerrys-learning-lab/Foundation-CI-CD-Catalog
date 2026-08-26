@@ -23,6 +23,7 @@ include:
 auto tag:
   extends: .auto-tag
   stage: release
+  image: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:$[[ component.reference ]]
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]

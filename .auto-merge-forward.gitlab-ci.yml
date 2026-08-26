@@ -1,7 +1,6 @@
 # ============================================================================
 .auto-merge-forward:
   extends: .default-base
-  image: $GLAB_JOB_IMAGE
   stage: release
   variables:
     GIT_DEPTH: 0

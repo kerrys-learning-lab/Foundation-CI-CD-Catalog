@@ -47,6 +47,7 @@ include:
 # ----------------------------------------------------------------------------
 pipeline version:
   extends: .pipeline-version
+  image: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:$[[ component.reference ]]
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]

@@ -4,26 +4,12 @@ version: 1
 
 
 # ----------------------------------------------------------------------------
-components:
+upstream:
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/image
-  devsecops/cicd-catalog/image: release/0.3
+  devsecops/cicd-catalog/image: 0.4
+
   # renovate: datasource=gitlab-tags depName=devsecops/cicd-catalog/release-me
-  devsecops/cicd-catalog/release-me: release/0.1
-
-# ----------------------------------------------------------------------------
-# Container image tags, keyed by GitLab project path.
-#
-# Mind the slug!  A component ref uses `release/0.4`; the container image tag
-# built from that same branch is `release-0.4`.  The two forms are declared
-# separately and on purpose -- an image tag is not required to track its
-# project's component ref, so it is not derived from it.
-#
-# Only `$CI_REGISTRY/<declared-path>/...` references are governed.  Ephemeral
-# tags such as `$CI_REGISTRY_IMAGE/bashunit:build.$CI_PIPELINE_IID` carry no
-# release version and are ignored.
-images:
-  devsecops/cicd-catalog/foundation: release-0.7
-
+  devsecops/cicd-catalog/release-me: 0.2
 
 # ----------------------------------------------------------------------------
 # Paths excluded from the scan (bash glob patterns, relative to the repo root;

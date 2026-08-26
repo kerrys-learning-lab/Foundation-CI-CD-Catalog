@@ -1,7 +1,6 @@
 # ============================================================================
-.release:
+.gitlab-release:
   extends: .default-base
-  image: $GLAB_JOB_IMAGE
   stage: release
   interruptible: false
   variables:

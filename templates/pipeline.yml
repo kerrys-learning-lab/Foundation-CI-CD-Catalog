@@ -21,8 +21,8 @@ spec:
       type: boolean
       default: true
 
-    release:
-      description:  If true, the Pipeline will include a 'release' Job.
+    gitlab_release:
+      description:  If true, the Pipeline will include a 'gitlab release' Job.
       type: boolean
       default: true
 
@@ -53,9 +53,9 @@ include:
       default_semver_prefix: $[[ inputs.default_semver_prefix ]]
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/release@$[[ component.reference ]]
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/gitlab-release@$[[ component.reference ]]
     rules:
-      - if: '"$[[ inputs.release ]]" == "true"'
+      - if: '"$[[ inputs.gitlab_release ]]" == "true"'
 
   # --------------------------------------------------------------------------
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/auto-merge-forward@$[[ component.reference ]]

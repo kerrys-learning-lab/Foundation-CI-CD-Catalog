@@ -38,7 +38,6 @@
 #                               for the default branch)
 .pipeline-version:
   stage: .pre
-  image: $GLAB_JOB_IMAGE
   extends: .default-base
   variables:
     DEFAULT_SEMVER_PREFIX: v0.0.0

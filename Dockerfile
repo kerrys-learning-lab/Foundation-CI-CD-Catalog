@@ -46,15 +46,4 @@ RUN mkdir -p ${INSTALL_DIR}/bashunit-${BASHUNIT_VERSION}  && \
 
 
 # ============================================================================
-FROM base AS mkdocs
-
-
-RUN dnf install -y  mkdocs  \
-                    mkdocs-material  \
-                    python3-mkdocs-autorefs  \
-                    python3-mkdocs-literate-nav  \
-                    python3-mkdocs-material-extensions
-
-
-# ============================================================================
 FROM base AS glab

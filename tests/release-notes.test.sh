@@ -38,7 +38,7 @@ function test_release_notes_multiple_types() {
   echo "helm-chart-1" > ${RELEASE_NOTES_DIR}/helm-chart/helm-chart-1.md
   echo "helm-chart-2" > ${RELEASE_NOTES_DIR}/helm-chart/helm-chart-2.md
 
-  OUTPUT=$(/usr/local/bin/uut--release--release 2>&1)
+  OUTPUT=$(/usr/local/bin/uut--gitlab-release--gitlab-release 2>&1)
   cat -n ${RELEASE_README_FILEPATH}
 
   assert_file_exists    ${RELEASE_README_FILEPATH}
@@ -64,7 +64,7 @@ function test_release_notes_type_dir_but_no_files() {
   # --- Helm Chart type ------------------------------------------------------
   mkdir ${RELEASE_NOTES_DIR}/helm-chart
 
-  OUTPUT=$(/usr/local/bin/uut--release--release 2>&1)
+  OUTPUT=$(/usr/local/bin/uut--gitlab-release--gitlab-release 2>&1)
 
   assert_file_exists        ${RELEASE_README_FILEPATH}
   assert_file_contains      ${RELEASE_README_FILEPATH}   "# Release foo-1.2.3"
@@ -77,7 +77,7 @@ function test_no_release_notes_directory() {
   export CI_COMMIT_TAG=foo-1.2.3
   export RELEASE_README_FILEPATH=$(bashunit::temp_file)
 
-  OUTPUT=$(/usr/local/bin/uut--release--release 2>&1)
+  OUTPUT=$(/usr/local/bin/uut--gitlab-release--gitlab-release 2>&1)
 
   assert_equals "Release foo-1.2.3" "${OUTPUT}"
   assert_file_exists    ${RELEASE_README_FILEPATH}
