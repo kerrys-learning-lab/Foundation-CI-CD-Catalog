@@ -9,6 +9,7 @@ variables:
   MKDOCS_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/mkdocs:release-0.7
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi
   PUBLISH_MODE: ""
+  PROJECT_GENERIC_PACKAGES_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic
 
 
 # ============================================================================
