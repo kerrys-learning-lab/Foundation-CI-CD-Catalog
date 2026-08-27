@@ -4,11 +4,9 @@ variables:
   PIPELINE_ARTIFACTS_DIR: .pipeline-artifacts
   RELEASE_NOTES_DIR: $PIPELINE_ARTIFACTS_DIR/release-notes
   JOB_ARTIFACTS_DIR: .job-artifacts/$CI_JOB_NAME_SLUG
-  BASHUNIT_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/bashunit:main
-  GLAB_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:main
-  MKDOCS_JOB_IMAGE: $CI_REGISTRY/devsecops/cicd-catalog/foundation/mkdocs:main
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi
   PUBLISH_MODE: ""
+  PROJECT_GENERIC_PACKAGES_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic
 
 
 # ============================================================================
@@ -97,6 +95,57 @@ default:
       git config --global user.email  "${CICD_BOT_EMAIL}"
       git config --global user.name   "${CICD_BOT_NAME}"
       git remote set-url origin "https://PRIVATE-TOKEN:${CICD_BOT_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+
+
+# ============================================================================
+.git-commit:
+  script:
+    - |
+      # --- git-commit -------------------------------------------------------
+      GIT_COMMIT_CLI_ARGS=()
+      GIT_COMMIT_CLI_ARGS+=(--quiet)
+
+      if [[ -n "${GIT_COMMIT_MESSAGES[@]}" ]]; then
+        for msg in "${GIT_COMMIT_MESSAGES[@]}"; do
+          GIT_COMMIT_CLI_ARGS+=(--message "${msg}")
+        done
+      else
+        GIT_COMMIT_CLI_ARGS+=(--message "${GIT_COMMIT_MSG:-Automatic commit}")
+      fi
+      git commit "${GIT_COMMIT_CLI_ARGS[@]}"
+
+
+# ============================================================================
+.git-push:
+  script:
+    - |
+      # --- git-push ---------------------------------------------------------
+      echo "🚀 Pushing to ${CI_PROJECT_NAME} (${CI_COMMIT_BRANCH})"
+
+      # Rebase-and-retry if necessary
+      GIT_PUSH_ATTEMPTS=${GIT_PUSH_ATTEMPTS:-5}
+
+      for (( attempt=1; attempt<=GIT_PUSH_ATTEMPTS; attempt++ )); do
+        if git push --quiet origin ${CI_COMMIT_BRANCH}; then
+          echo "✅ Pushed on attempt ${attempt}"
+          exit 0
+        else
+          echo "🔁 Push rejected; rebasing and retrying (${attempt}/${GIT_PUSH_ATTEMPTS})"
+          sleep $(( attempt * 3 ))
+          git pull --quiet --rebase origin ${CI_COMMIT_BRANCH}
+        fi
+      done
+
+      echo "❌ Error: Unable to push after ${GIT_PUSH_ATTEMPTS} attempts"
+      exit 100
+
+
+# ============================================================================
+.git-commit-and-push:
+  script:
+    - !reference [.git-commit,  script]
+    - !reference [.git-push,    script]
+
 
 
 # ============================================================================

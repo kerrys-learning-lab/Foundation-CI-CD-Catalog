@@ -14,13 +14,14 @@ spec:
 # ============================================================================
 include:
   - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/foundation/defaults@$[[ component.reference ]]
-  - local: .release.gitlab-ci.yml
+  - local: .gitlab-release.gitlab-ci.yml
 
 
 # ============================================================================
-release:
-  extends: .release
+gitlab release:
+  extends: .gitlab-release
   stage: release
+  image: $CI_REGISTRY/devsecops/cicd-catalog/foundation/glab:$[[ component.reference ]]
   variables:
     COMPONENT_NAME: $[[ component.name ]]
     COMPONENT_REFERENCE: $[[ component.reference ]]

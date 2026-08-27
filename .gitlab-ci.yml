@@ -2,7 +2,7 @@
 include:
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@0.4
     inputs:
       target: glab
       unit_test_enabled: false
@@ -12,19 +12,7 @@ include:
       release: false
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.4
-    inputs:
-      target: mkdocs
-      unit_test_enabled: false
-      structure_test_enabled: false
-      job_name_suffix: " (mkdocs)"
-      build_needs:
-        - image build (glab)
-      auto_merge_forward: false
-      release: false
-
-  # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@release/0.4
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/image/pipeline@0.4
     inputs:
       target: bashunit
       unit_test_enabled: false
@@ -36,14 +24,14 @@ include:
       release: false
 
   # --------------------------------------------------------------------------
-  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/release-me/check-release@release/0.1
+  - component: $CI_SERVER_FQDN/devsecops/cicd-catalog/release-me/check-release@0.2
 
   # --------------------------------------------------------------------------
   - local: templates/defaults.yml
   - local: .auto-merge-forward.gitlab-ci.yml
   - local: .auto-tag.gitlab-ci.yml
   - local: .bashunit.gitlab-ci.yml
-  - local: .release.gitlab-ci.yml
+  - local: .gitlab-release.gitlab-ci.yml
   - local: .semver.gitlab-ci.yml
 
 
@@ -118,6 +106,6 @@ dogfood [auto-tag]:
 
 
 # ============================================================================
-dogfood [release]:
-  extends: .release
+dogfood [gitlab-release]:
+  extends: .gitlab-release
   image: $CI_REGISTRY_IMAGE/glab:build.$CI_PIPELINE_IID

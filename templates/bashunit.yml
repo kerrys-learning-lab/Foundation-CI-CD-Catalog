@@ -32,6 +32,7 @@ include:
 # ============================================================================
 "$[[ inputs.job_name_prefix ]]bash unit-test$[[ inputs.job_name_suffix ]]":
   extends: .bashunit-test
+  image: $CI_REGISTRY/devsecops/cicd-catalog/foundation/bashunit:$[[ component.reference ]]
   variables:
     BASHUNIT_TESTS_PATH: $[[ inputs.tests_path ]]
     COMPONENT_NAME: $[[ component.name ]]
