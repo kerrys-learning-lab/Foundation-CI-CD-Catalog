@@ -143,6 +143,7 @@ default:
 # ============================================================================
 .git-commit-and-push:
   script:
+    - !reference [.git-login,   script]
     - !reference [.git-commit,  script]
     - !reference [.git-push,    script]
 
