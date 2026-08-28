@@ -6,6 +6,7 @@ variables:
   JOB_ARTIFACTS_DIR: .job-artifacts/$CI_JOB_NAME_SLUG
   ROCKYLINUX_BASE_IMAGE: docker.io/rockylinux/rockylinux:10.2-ubi
   PUBLISH_MODE: ""
+  RELEASE_MODE: ""
   PROJECT_GENERIC_PACKAGES_URL: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic
 
 
@@ -191,11 +192,11 @@ default:
 # ============================================================================
 # These rules enforce the nominal publish case:
 #
-#   - Publishing never occurs from an MR
 #   - For branches and tags, publishing may be skipped or forced via a 'mode'
 #     input (implies the Job MUST declare said input)
 #   - Publishing only occurs for protected branches and tags (unless
 #     overridden by 'mode')
+#   - Publishing never occurs from an MR
 .rules//publish:
   rules:
     - !reference [.rules//never-if-merge-request,   rules]
@@ -204,6 +205,28 @@ default:
       when: never
     - if: $PUBLISH_MODE == "force"
     - !reference [.rules//if-protected-ref,  rules]
+
+
+# ============================================================================
+# These rules enforce the nominal release case:
+#
+#   - By default, only release tags (vX.Y.Z) are released
+#   - For release tags (vX.Y.Z), a release may be skipped via 'mode' (skip)
+#   - For release branches (release/X.Y) or the default branch, releasing may
+#     be forced via 'mode' (force)
+#   - Releases never occurs from an MR
+#
+# NOTE: Some actions cannot be forced.  For example, GitLab only allows
+#       its 'release' keyword to be used with a tag (never a branch)
+.rules//release:
+  rules:
+    - if: $RELEASE_MODE == "skip"
+      when: never
+    - !reference [.rules//never-if-merge-request,   rules]
+    - !reference [.rules//never-if-gitlab-ci-local, rules]
+    - !reference [.rules//if-release-tag,           rules]
+    - if: $RELEASE_MODE == "force" && $CI_COMMIT_BRANCH =~ /^release\/.*/
+    - if: $RELEASE_MODE == "force" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 
 # ============================================================================
